@@ -1,0 +1,5 @@
+*.back
+*.RData
+*.Rhistory
+*_cache
+*_files
