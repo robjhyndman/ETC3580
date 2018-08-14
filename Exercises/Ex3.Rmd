@@ -1,0 +1,60 @@
+---
+title: 'Week 3: Exercises'
+author: "ETC3580"
+output:
+  html_document:
+    fig_height: 5
+    fig_width: 8
+    toc: yes
+    toc_depth: 1
+    toc_float:
+      collapsed: false
+    number_sections: false
+    code_folding: show
+    theme: readable
+---
+
+# Exercise 3A
+
+Exercise 1 on p79-80 of Faraway (2016).
+
+# Exercise 3B
+
+Use the GSS data to study the changes in attitudes to pre-marital sex over time. The following code will help get you started.
+
+```r
+library(tidyverse)
+load("gss.RData")
+​
+# Select relevant variables
+# and set up binary variable for pre-marital sex being wrong
+# and a numerical variable for age. year is already numerical.
+gss %>%
+  select(premarsx, year, age, race, sex) %>%
+  mutate(wrong = (premarsx=="SOMETIMES WRONG" | premarsx=="ALWAYS WRONG"),
+         age = ifelse(age=="89 OR OLDER",
+                      89,
+                      as.numeric(as.character(age)))) ->
+  mydata
+```
+
+1. Fit a logistic regression model with year, age, sex and race as predictors.  Are all variables significant? How do you interpret the coefficients in terms of the odds-ratio of thinking pre-marital sex is wrong?
+
+2. Fit a new model including all 2-way interactions. Are there any significant interactions between the four variables in your model? How do you interpret these?
+
+3. Are there any groups of people who have grown more opposed to pre-marital sex over time?
+
+4. Plot the probability of white males being opposed to pre-marital sex against year, for the ages 20, 30, 40, 50, 60, 70 and 80. The following code will generate a data frame for each case you will need to predict. Use the predict function to generate the probabilities. Then you might need to work together to figure out how to create the plot.
+
+	```r
+	df <- expand.grid(year=1972:2016,
+	                  age=seq(20,80,by=10),
+	                  sex="MALE",
+	                  race="WHITE")
+	```
+
+5. Repeat the plot for black females. How do the two groups differ?
+
+# Exercise 3C
+
+Finish off the DataCamp course on multiple and logistic regression: https://www.datacamp.com/courses/multiple-and-logistic-regression

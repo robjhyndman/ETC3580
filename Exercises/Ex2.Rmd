@@ -1,0 +1,53 @@
+---
+title: 'Week 2: Exercises'
+author: "ETC3580"
+output:
+  html_document:
+    fig_height: 5
+    fig_width: 8
+    toc: yes
+    toc_depth: 1
+    toc_float:
+      collapsed: false
+    number_sections: false
+    code_folding: show
+    theme: readable
+---
+
+# Exercise 2A
+
+For the final model fitted to the `swiss` data in Exercise 1A, produce the following plots.
+
+  * Residuals vs fitted values
+  * Residuals vs all variables in the model
+  * Normal QQ plot
+  * Dot plots of hat values and Cook's distances
+
+What do these tell you about the model and the data?
+
+# Exercise 2B
+
+For the final model fitted to the `gss` data in Exercise 1B, produce the following plots.
+
+  * Residuals vs fitted values
+  * Residuals vs all variables in the model
+  * Normal QQ plot
+  * Dot plots of hat values and Cook's distances
+
+What do these tell you about the model and the data?
+
+# Exercise 2C
+
+Produce a linear model for the expenditure on gambling by British teenagers, using the `teengamb` data set.
+
+1. Turn the data frame into a tibble, with sex as a factor variable.
+2. Model the `gamble` variable, with the other four variables as predictors. Include up to 2-way interactions, and use the `step()` function to reduce the model.
+3. Visualize the final model using `visreg`.
+4. Check the model using the following residual diagnostic plots
+
+    - Residuals vs fitted values
+    - Residuals vs all variables in the model
+    - Normal QQ plot
+    - Dot plots of hat values and Cook's distances
+
+    Is there any evidence of nonlinearity? Are there any outliers, or influential observations?

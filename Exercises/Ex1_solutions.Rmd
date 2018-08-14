@@ -1,0 +1,254 @@
+---
+title: 'Week 1: Solutions'
+author: "ETC3580"
+output:
+  html_document:
+    fig_height: 5
+    fig_width: 8
+    toc: yes
+    toc_depth: 2
+    toc_float:
+      collapsed: false
+    number_sections: false
+    code_folding: show
+    theme: readable
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, cache=TRUE, warning=FALSE, message=FALSE)
+options(width=80,digits=3)
+```
+
+```{r loadpackages}
+library(tidyverse)
+library(visreg)
+```
+
+# Exercise 1A
+
+## A1
+
+```{r A1}
+swiss <- as_tibble(swiss)
+```
+
+## A2
+
+```{r A2}
+
+GGally::ggpairs(swiss)
+ggplot(gather(swiss)) +
+  geom_boxplot(aes(x=key,y=value))
+```
+
+ * Fertility vs Agriculture: positively correlated
+ * Fertility vs Infant mortality: positively correlated
+ * Fertility vs Examination: negatively correlated
+ * Fertility vs Education: negatively correlated
+ * Fertility vs Catholic: seems to have two groups of provinces
+
+In addition, there are relationships between Agriculture and Education, Agriculture and Examination, and Examination and Education, which are very intuitive.
+
+There are few outliers in Education, Fertility and Infant mortality.
+
+The shape of the boxplot for Catholic is because of having roughly two groups of provinces. You can clearly see it from the density plot of Catholic variable.
+
+## A3
+
+```{r A3}
+fit <- lm(Fertility ~ ., data = swiss)
+summary(fit)
+visreg(fit, "Agriculture", gg=TRUE)
+visreg(fit, "Infant.Mortality", gg=TRUE)
+visreg(fit, "Examination", gg=TRUE)
+visreg(fit, "Education", gg=TRUE)
+visreg(fit, "Catholic", gg=TRUE)
+```
+
+Agriculture, Education, Catholic, and Infant.Mortality variables look significant.
+
+## A4
+
+```{r A4}
+drop1(fit, test="F")
+```
+
+Sure enough, only `Examination` is not significant.
+
+## A5
+
+```{r A5}
+# Using step
+fit2 <- lm(Fertility ~ (.)^2, data=swiss) %>% step()
+summary(fit2)
+```
+
+These two approaches give almost the same model, with the difference being in how they include the `Catholic` variable.
+
+```{r A5c}
+visreg2d(fit2, "Agriculture", "Examination")
+visreg2d(fit2, "Agriculture", "Education")
+visreg2d(fit2, "Agriculture", "Infant.Mortality")
+visreg2d(fit2, "Examination", "Education")
+visreg2d(fit2, "Examination", "Infant.Mortality")
+visreg2d(fit2, "Catholic", "Education")
+```
+
+# Exercise 1B
+
+```{r Bgss}
+load("gss.RData")
+gss %>%
+  # Select variables we want to use
+  select(prestige, year, age, sex, race) %>%
+  # Convert prestige and age to numeric variables
+  mutate(prestige = as.numeric(substr(prestige,1,2)),
+         age = as.numeric(substr(age, 1, 2))) ->
+  # Save result
+  mydata
+
+summary(mydata)
+
+GGally::ggpairs(mydata)
+```
+
+## B1
+
+```{r B1}
+# Fit model
+fit <- lm(prestige ~ year + age + sex + race, data=mydata)
+summary(fit)
+```
+
+Let's do a standard residual vs fitted plot.
+
+```{r B1a}
+fit %>%
+  broom::augment() %>%
+  ggplot() +
+    geom_point(aes(x=.fitted, y=.resid))
+```
+
+The two clusters probably occur because of a factor variable with two levels --- mostly likely race or sex. We can check if that is the case.
+
+```{r B1b}
+fit %>%
+  broom::augment() %>%
+  ggplot() +
+    geom_point(aes(x=.fitted, y=.resid, color=race))
+```
+
+## B2
+
+We will add degree and class. Other choices are also possible, of course.
+
+```{r B2}
+gss %>%
+  # Select variables we want to use
+  select(prestige, year, age, sex, race, degree, class) %>%
+  # Convert prestige and age to numeric variables
+  # and recode degree and class to fix missing values
+  mutate(
+    prestige = as.numeric(substr(prestige,1,2)),
+    age = as.numeric(substr(age, 1, 2)),
+    degree = recode(degree,
+                "JUNIOR COLLEGE" = "HIGH SCHOOL",
+                "DK" = NA_character_,
+                "NA" = NA_character_),
+   class = recode(class,
+                "IAP" = NA_character_,
+                "NO CLASS" = NA_character_,
+                "DK" = NA_character_,
+                "NA" = NA_character_)) ->
+    mydata
+
+fit2 <- lm(prestige ~ year + age + sex + race + degree + class, data=mydata)
+summary(fit2)
+```
+
+## B3
+
+```{r B3}
+fit3 <- lm(prestige ~ year + age * sex + race + degree + class +
+             age * sex, data=mydata)
+summary(fit3)
+```
+
+## B4
+
+We will include all possible interactions, and then use stepwise selection to simplify the model.
+
+
+```{r B4}
+fit4 <- lm(prestige ~ (year + age + sex + race + degree + class)^2,
+           data=mydata) %>%
+        step(trace=FALSE)
+summary(fit4)
+```
+
+That's a lot of interactions!
+
+```{r B4b}
+visreg2d(fit4, "age", "year")
+visreg(fit4, "age", "sex", gg=TRUE, overlay=TRUE)
+visreg(fit4, "age", "race", gg=TRUE, overlay=TRUE)
+visreg(fit4, "age", "degree", gg=TRUE, overlay=TRUE)
+visreg(fit4, "age", "class", gg=TRUE, overlay=TRUE)
+visreg(fit4, "year", "sex", gg=TRUE, overlay=TRUE)
+visreg(fit4, "year", "race", gg=TRUE, overlay=TRUE)
+visreg(fit4, "year", "degree", gg=TRUE, overlay=TRUE)
+visreg(fit4, "year", "class", gg=TRUE, overlay=TRUE)
+```
+
+Other numeric-categorical interactions can be plotted similarly.
+
+```{r B4c}
+visreg(fit4, "sex", "race", gg=TRUE, points.par=list(alpha=0.1)) +
+  theme_bw()
+visreg(fit4, "class", "sex", gg=TRUE, points.par=list(alpha=0.1)) +
+  theme_bw()
+visreg(fit4, "class", "race", gg=TRUE, points.par=list(alpha=0.1)) +
+  theme_bw()
+visreg(fit4, "class", "degree", gg=TRUE, points.par=list(alpha=0.1)) +
+  theme_bw()
+visreg(fit4, "race", "degree", gg=TRUE, points.par=list(alpha=0.1)) +
+  theme_bw()
+visreg(fit4, "sex", "degree", gg=TRUE, points.par=list(alpha=0.1)) +
+  theme_bw()
+```
+
+
+## B5
+
+The best model obtained (`fit4`) has AIC `r AIC(fit4)`.
+
+## B6
+
+It has an $R^2$ of 36.71%
+
+## B7
+
+```{r B7}
+filter(mydata, year > 2000) %>% summary
+```
+
+All `prestige` values are missing. So no data left to model.
+
+## B8
+
+First we need to make sure the comparisons are fair, so we will remove rows with missing values.
+
+```{r B8}
+mydata <- na.omit(mydata)
+lm(prestige ~ year, data = mydata) %>% AIC()
+lm(prestige ~ age, data = mydata) %>% AIC()
+lm(prestige ~ sex, data = mydata) %>% AIC()
+lm(prestige ~ race, data = mydata) %>% AIC()
+lm(prestige ~ degree, data = mydata) %>% AIC()
+lm(prestige ~ class, data = mydata) %>% AIC()
+```
+
+Degree is the single most important predictor based on AIC.
+
+
+

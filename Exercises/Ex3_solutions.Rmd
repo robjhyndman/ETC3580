@@ -1,0 +1,262 @@
+---
+title: 'Week 3: Solutions'
+author: "ETC3580"
+output:
+  html_document:
+    fig_height: 5
+    fig_width: 8
+    toc: yes
+    toc_depth: 2
+    toc_float:
+      collapsed: false
+    number_sections: false
+    code_folding: show
+    theme: readable
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, cache=TRUE, warning=FALSE, message=FALSE)
+options(width=80,digits=3)
+```
+
+```{r loadpackages}
+library(faraway)
+library(tidyverse)
+library(visreg)
+library(broom)
+```
+
+# Exercise 3A
+
+## A1(a)
+
+```{r Aa}
+ggplot(chredlin) +
+  geom_histogram(aes(x = involact), binwidth = 0.1)
+mean(chredlin$involact==0)
+```
+
+## A1(b)
+
+```{r Ab}
+lmod <- lm(involact ~ race + fire + theft + age + log(income),
+           data = chredlin)
+summary(lmod)
+```
+
+We see that higher takeup of involuntary insurance is associated with
+
+- higher proportions of racial minority population
+- higher fire rates
+- older housing
+- lower rates of theft
+
+We see that income is not marginally associated with the response.
+
+## A1(c)
+
+```{r Ac}
+augment(lmod) %>%
+  ggplot(aes(x=.fitted, y=.resid)) +
+    geom_point() + geom_smooth()
+```
+
+The line of points on the left of the plot corresponds to zero response values. These cases disturb our assessment of the constant variance assumption.
+
+## A1(d)
+
+```{r Ad, warning=TRUE, message=TRUE}
+chredlin <- mutate(chredlin,
+                denied = factor(ifelse(involact,"yes","no")))
+glm1 <- glm(denied ~ race + fire + theft + age + log(income),
+            data = chredlin, family = binomial)
+```
+
+There are two warning messages. The first warning is due to insufficient number of iterations. It can be fixed by increasing the maxit argument.
+
+The second warning message is due to linear separation.
+
+## A1(e)
+
+```{r Ae}
+glm2 <- glm(denied ~ race + age, data = chredlin, family = "binomial")
+summary(glm2)
+drop1(glm2, test = "Chisq")
+```
+
+z-statistics have p-values which are at or above 0.05.
+
+In contract, the deviance tests shows both coefficients are highly significant at 5% level. The difference in deviance is preferred over z-statistic as it is more accurate.
+
+## A1(f)
+
+```{r Af}
+ggplot(chredlin) +
+  geom_point(aes(x = race, y = age, color = denied))
+```
+
+We can see from the plot that two groups are almost linearly separable.
+
+We see that the use of involuntary insurance is associated with higher proportions of racial minority and older housing. We see the two predictors are associated with each other in that higher racial minority zip codes also
+tend to have older housing.
+
+## A1(g)
+
+```{r Ag}
+glm3 <- glm(denied ~ age + race, family=binomial(link="probit"),
+            data = chredlin)
+summary(glm3)
+```
+
+The deviance and z-statistics are quite similar in the two models. However, the estimated coefficients are different because of the different scaling in the two link functions.
+
+Compare the predicted probabilities from the logit and probit models. It is easier to use `predict` than `augment` here.
+
+```{r Ag2}
+p_logit <- predict(glm2, type='response')
+p_probit <- predict(glm3, type='response')
+
+ggplot() +
+  geom_point(aes(x=p_logit, y=p_probit)) +
+  geom_abline(intercept = 0, slope = 1) +
+  xlab("Predicted probabilities from the logit link") +
+  ylab("Predicted probabilities from the probit link")
+```
+
+The plot of probabilities between the two models show that probabilities resulting from the two models are very similar.
+
+## A1(h)
+
+The probit model is most comparable to the Gaussian linear model because a Gaussian distribution for the response is associated with a latent variable model with a probit response.
+
+- The Gaussian model suffers from the violation of the normality assumption for the response.
+- The probit model suffers from the loss of information incurred due to discretizing the response variable.
+
+# Exercise 3B
+
+```{r gss}
+load("gss.RData")
+
+# Select relevant variables
+# and set up binary variable for pre-marital sex being wrong
+# and a numerical variable for age. year is already numerical.
+gss %>%
+  select(premarsx, year, age, race, sex) %>%
+  mutate(wrong = (premarsx=="SOMETIMES WRONG" | premarsx=="ALWAYS WRONG"),
+         age = ifelse(age=="89 OR OLDER",
+                      89,
+                      as.numeric(as.character(age)))) ->
+  mydata
+```
+
+## B1
+
+```{r B1}
+glm1 <- glm(wrong ~ year + age + sex + race, data = mydata, family = binomial)
+summary(glm1)
+```
+
+```{r B1oddsratios, echo=FALSE}
+# Odds ratios:
+or <- round((exp(coef(glm1)[-1]) - 1) * 100, 1)
+increase <- (or>0)
+```
+
+All the variables are significant at 5% level. We can interpret the results using odds ratios. Just take the exponential of the coefficients minus 1. For example, the odds of saying that the pre-marital sex is wrong `r ifelse(increase[3],"increase","decrease")` by $100[\exp(`r coef(glm1)[4]`) - 1] = `r abs(or[3])`$% among females than males when all other variables remain constant. Other coefficients can be interpreted similarly.
+
+- odds of saying that the pre-marital sex is wrong `r ifelse(increase[1],"increase","decrease")` by `r abs(or[1])`% with each additional year when all other variables remain constant.
+- odds of saying that the pre-marital sex is wrong `r ifelse(increase[2],"increase","decrease")` by `r abs(or[2])`% with each additional year of age when all other variables remain constant.
+- odds of saying that the pre-marital sex is wrong `r ifelse(increase[4],"increase","decrease")` by `r abs(or[4])`% among blacks than white when all other variables remain constant.
+- odds of saying that the pre-marital sex is wrong `r ifelse(increase[5],"increase","decrease")` by `r abs(or[5])`% among other type of race than white when all other variables remain constant.
+
+## B2
+
+```{r B2}
+glm2 <- glm(wrong ~ (year + age + sex + race)^2, data = mydata, family = binomial)
+summary(glm2)
+```
+
+All two-way interactions are significant at 5% level.
+
+```{r orexample, echo=FALSE}
+beta <- coef(glm2)
+```
+
+Example of interpretation using the `year::sexFemale` term. First we add the coefficients for `year` and `year::sexFemale` to get $`r round(beta['year'], 3)` `r round(beta['year:sexFEMALE'], 3)` = `r round(beta['year']+beta['year:sexFEMALE'], 3)`$. Then take exponential to get $e^{`r round(beta['year']+beta['year:sexFEMALE'], 3)`} = `r round(exp(beta['year']+beta['year:sexFEMALE']), 3)`$ and convert to a percentage to get $100(`r round(exp(beta['year']+beta['year:sexFEMALE']), 3)`) - 1 = `r round((exp(beta['year']+beta['year:sexFEMALE'])-1)*100, 1)`$%.
+
+
+>Among Females, odds of saying that pre-marital sex is wrong decrease by `r round(abs(exp(beta['year']+beta['year:sexFEMALE'])-1)*100, 1)`% with each additional year, when all other variables remain constant.
+
+**Note:** Interpretation of the interaction terms involving continuous variables might need centering of the respective variables.
+
+`visreg` plots are much easier to interpret.
+
+```{r visreg}
+visreg2d(glm2, "year", "age")
+visreg(glm2, "age", by="sex", gg=TRUE, partial=FALSE, rug=FALSE, overlay=TRUE) + theme_bw()
+visreg(glm2, "age", by="race", gg=TRUE, partial=FALSE, rug=FALSE, overlay=TRUE) + theme_bw()
+visreg(glm2, "year", by="sex", gg=TRUE, partial=FALSE, rug=FALSE, overlay=TRUE) + theme_bw()
+visreg(glm2, "year", by="race", gg=TRUE, partial=FALSE, rug=FALSE, overlay=TRUE) + theme_bw()
+visreg(glm2, "race", by="sex", gg=TRUE, partial=FALSE, rug=FALSE, overlay=TRUE) + theme_bw()
+```
+
+  * Older people are more likely to think that pre-marital sex is wrong, but this attitude has diminished over time.
+  * Females are more likely to think that pre-marital sex is wrong.
+  * Disapproval of pre-marital sex increases with age. The disapproval of pre-marital sex amongst whites increases faster with age than for blacks or other races.
+  * Disapproval of pre-marital sex has declined over time, with the attitude of females changing a little faster than males.
+  * The disapproval of whites to pre-marital sex has declined much faster than others, while the disapproval of blacks to pre-marital sex has not changed much over time.
+  * There is bigger gap in attitudes to pre-marital sex between males and females amongst blacks, then for whites or other races.
+
+## B3
+
+Young, male, black people have grown more opposed to pre-marital sex over time.
+
+To see this graphically, we will compute the probability for each age, sex and race combination. These will be useful for parts (4) and (5) as well.
+
+```{r B3}
+df <- expand.grid(year=1972:2016,
+          age=seq(20,80,by=10),
+          sex=c("MALE", "FEMALE"),
+          race=c("BLACK","WHITE"))
+# Add in probabilities from predict function
+# And make age a factor variable
+df <- mutate(df,
+        prob = predict(glm2, newdata=df, type="response"),
+        age = factor(age))
+# Now just plot the results for black males
+df %>%
+  filter(sex=="MALE", race=="BLACK") %>%
+  ggplot() +
+    geom_line(aes(x=year, y=prob, color=age), lwd=1) +
+    xlab("Year") + ylab("Probability") +
+    ggtitle("Predicted probability of black males being opposed to pre-marital sex")
+```
+
+## B4
+
+```{r B4}
+# Plot results for white males
+df %>%
+  filter(sex=="MALE", race=="WHITE") %>%
+  ggplot() +
+    geom_line(aes(x=year, y=prob, color=age), lwd=1) +
+    xlab("Year") + ylab("Probability") +
+    ggtitle("Predicted probability of white males being opposed to pre-marital sex")
+```
+
+## B5
+
+```{r B5}
+#Plot results for white males and black females together
+df %>%
+  mutate(group=factor(paste(race,sex))) %>%
+  filter(group=="WHITE MALE" | group=="BLACK FEMALE") %>%
+  ggplot() +
+    geom_line(aes(x=year, y=prob, colour=age, linetype=group), lwd=1) +
+    xlab("Year") + ylab("Probability") +
+    ggtitle("Predicted probability of being opposed to pre-marital sex")
+```
+
+Female black people have been relatively stable with their opinion over time whereas male white people have changed their opinion over time.
+
+

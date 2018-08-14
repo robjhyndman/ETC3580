@@ -1,0 +1,58 @@
+---
+title: 'Week 4: Exercises'
+author: "ETC3580"
+output:
+  html_document:
+    fig_height: 5
+    fig_width: 8
+    toc: yes
+    toc_depth: 1
+    toc_float:
+      collapsed: false
+    number_sections: false
+    code_folding: show
+    theme: readable
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, cache=TRUE, warning=FALSE, message=FALSE)
+options(width=80,digits=3)
+```
+
+```{r loadpackages}
+library(faraway)
+library(tidyverse)
+```
+
+# 4A
+
+Faraway, chapter 3, Exercises 2
+
+# 4B
+
+In lectures in week 1, Rob fitted a linear model to the undercount proportion in each county of Georgia, USA, in 2000. Here is the code to fit a simplified version of the model.
+
+```r
+gavote %>%
+  as.tibble() %>%
+  rename(usage = rural) %>%
+  mutate(
+    undercount = (ballots - votes) / ballots,
+    pergore = gore / votes,
+    county = rownames(faraway::gavote)
+  ) ->
+  gavote
+lmod <- lm(undercount ~ perAA*(pergore + equip) + econ + pergore*usage,
+           data=gavote)
+```
+
+However, `undercount` is a proportion, so it can only take values on [0,1].
+
+ 1. Re-estimate the model assuming a quasiBinomial model for the response variable instead of a Gaussian assumption.
+ 2. What difference does it make to the coefficients?
+ 3. What difference does it make to the conditional effects? [Compare the results from visreg on both models with `scale="response"`.]
+ 4. Why does using a Gaussian assumption not have much effect here?
+ 5. Repeat the comparison using a Beta model.
+ 6. Why can't we use a logitNormal model for this problem?
+
+
