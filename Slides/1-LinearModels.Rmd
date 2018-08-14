@@ -1,0 +1,344 @@
+---
+title: "ETC3580: Advanced Statistical Modelling"
+author: "Week 1: Visualizing linear models"
+fontsize: 14pt
+output:
+  beamer_presentation:
+    theme: metropolis
+    fig_height: 4.5
+    fig_width: 7
+    highlight: tango
+    includes:
+      in_header: header.tex
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, cache=FALSE, warning=FALSE, message=FALSE,
+  dev.args=list(bg=grey(0.9), pointsize=11))
+library(tidyverse)
+set.seed(20180717)
+```
+
+# Linear Models Review
+
+## Linear Models
+\fontsize{13}{13}\sf
+\begin{block}{}\centering
+$y = \beta_0 + \beta_1 x_1 + \beta_2 x_2 + \cdots + \beta_{p}x_{p} + \varepsilon$
+\end{block}
+
+ * Response: $y$
+ * Predictors: $x_1,\dots,x_{p}$
+ * Error: $\varepsilon\sim\text{IID}$
+
+Let $\bm{y} = (y_1,\dots,y_n)'$, $\bm{\varepsilon} = (\varepsilon_1,\dots,\varepsilon_n)'$, $\bm{\beta} = (\beta_0,\dots,\beta_{p})'$ and
+\[
+\bm{X} = \begin{bmatrix}
+1      & x_{1,1} & x_{2,1} & \dots & x_{p,1}\\
+1      & x_{1,2} & x_{2,2} & \dots & x_{p,2}\\
+\vdots & \vdots  & \vdots  &       & \vdots\\
+1      & x_{1,n} & x_{2,n} & \dots & x_{p,n}
+  \end{bmatrix} \qquad \text{(the model matrix).}
+\]\pause
+
+Then
+
+###
+\centering
+$\bm{y} = \bm{X}\bm{\beta} + \bm{\varepsilon}.$
+
+## Matrix formulation
+
+**Least squares estimation**
+
+Minimize: $(\bm{y} - \bm{X}\bm{\beta})'(\bm{y} - \bm{X}\bm{\beta})$\pause
+
+Differentiate wrt $\bm{\beta}$ gives
+
+\begin{block}{The ``normal'' equations}
+\[
+\hat{\bm{\beta}} = (\bm{X}'\bm{X})^{-1}\bm{X}'\bm{y}
+\]
+\end{block}
+
+## Likelihood
+
+If the errors are iid and normally distributed, then
+\[
+\bm{y} \sim \text{N}(\bm{X}\bm{\beta},\sigma^2\bm{I}).
+\]\pause
+So the likelihood is
+\[
+L = \frac{1}{\sigma^n(2\pi)^{n/2}}\exp\left(-\frac1{2\sigma^2}(\bm{y}-\bm{X}\bm{\beta})'(\bm{y}-\bm{X}\bm{\beta})\right)
+\]\pause
+which is maximized when $(\bm{y}-\bm{X}\bm{\beta})'(\bm{y}-\bm{X}\bm{\beta})$ is minimized.\pause
+
+\centerline{\alert{So \textbf{MLE = OLS}.}}
+
+# Linear models in R
+
+## R modelling notation
+
+```r
+fit <- lm(y ~ x1 + x2 + x3,
+  data=tibble)
+```
+
+\begin{block}{}
+$$y = \beta_0
+  + \beta_1 x_1
+  + \beta_2 x_2
+  + \beta_3 x_3
+  + \varepsilon,\qquad
+  \varepsilon \sim N(0,\sigma^2)
+$$
+\end{block}
+
+```{r, include=FALSE}
+tibble <- tibble(
+  y = round(sample(97, size=100, replace=TRUE) + rnorm(200, sd=2),2),
+  x1 = round(sample(97, size=100, replace=TRUE) + rnorm(200, sd=2),2),
+  x2 = round(sample(100, size=100, replace=TRUE) + rnorm(200, sd=2)-50,2),
+  x3 = round(sample(10, size=100, replace=TRUE) + rnorm(200, sd=1),2)
+)
+```
+
+###
+```{r}
+tibble
+```
+
+
+## Useful helper functions
+
+### Base functions
+
+ * `summary`
+ * `coef`
+ * `fitted`
+ * `predict`
+ * `residuals`
+
+### `broom` functions
+
+ * `tidy`
+ * `augment`
+ * `glance`
+
+## R formulas
+
+\fontsize{13}{14}\sf
+
+\alert{Categorical predictors}:
+
+ * R will create the required dummy variables from a categorical *factor*.
+ * The first level is used as the reference category.
+ * Use `relevel` to change the reference category
+
+\fontsize{12}{12}\sf
+
+| Expression             | Description               |
+| :----------            | :-----------              |
+| `y ~ x`                | Simple regression         |
+| `y ~ 1 + x`            | Explicit intercept        |
+| `y ~ -1 + x`           | Through the origin        |
+| `y ~ x + I(x^2)`       | Quadratic regression      |
+| `y ~ x1 + x2 + x3`     | Multiple regression       |
+| `sqrt(y) ~ x + I(x^2)` | Transformed               |
+| `y ~ . -x1`            | All variables except `x1` |
+
+
+# Visualization
+
+## Partial residuals
+
+\begin{block}{}
+\centerline{$
+  \bm{r} = \bm{y} - \bm{X}\hat{\bm{\beta}}
+$}
+denote residuals for a given model fit.
+\end{block}
+
+\begin{alertblock}{}
+Then the partial residuals for variable $j$ are given by
+$$
+  \bm{r}_j = \bm{y} - \bm{X}_{-j}\hat{\bm{\beta}}_{-j}
+$$
+where the $-j$ subscript indicates the removal of the $j$th column/element.
+\end{alertblock}
+
+ * Equivalent to $y$ adjusted for all variables other than $x_j$.
+ * Plotting $\bm{r}_j$ vs $\bm{x}_j$ shows the relationship of $\bm{y}$ vs $\bm{x}_j$ after adjustment.
+
+## Conditional plots
+
+ * Slope of regression of $\bm{r}_j$ on $\bm{x}_j$ is $\beta_j$.
+
+ * Conditional plots show $\bm{r}_j + \bm{x}_{-j|m}\beta_{-j}$ vs $\bm{x}_j$, \newline where $\bm{x}_{-j|m}$ corresponds to median of numeric variables and mode for factors.
+
+ * Let ${\bm{x}^*}'$ denote row of design matrix constructed from $x_j=x$ and $\bm{x}_{-j|m}$. Then equation of line is ${\bm{x}^*}'\hat{\bm{\beta}}$ and standard error at $x$ is
+ $$
+ \text{se}(x) =  \sqrt{{\bm{x}^*}'\text{Var}(\hat{\bm{\beta}})\bm{x}^*}.
+ $$
+
+ * Construct confidence interval using
+$${\bm{x}^*}'\hat{\bm{\beta}} \pm t_{n-p,1-\alpha/2} \text{se}(x)$$
+
+## Visualization using visreg
+
+ * `visreg(ls_object)`
+ * `visreg(ls_object, "xvar", gg=TRUE)`
+
+# Interactions
+
+## Spotting an interaction in data
+
+\begin{alertblock}{}
+\textbf{Interactions occur when effect of one predictor on response changes with  value of another predictor.}
+\end{alertblock}\pause
+
+\begin{block}{To see 2-way interactions in raw data}
+\begin{itemize}
+\item Plot $y$ vs $x_j$ for different values of $x_k$
+\item Plot $y$ vs $x_k$ for different values of $x_j$
+\end{itemize}
+\end{block}\pause
+
+\begin{block}{To see 2-way interactions after adjustment}
+\begin{itemize}
+\item Plot $r_j$ vs $x_j$ for different values of $x_k$
+\item Plot $r_k$ vs $x_k$ for different values of $x_j$
+\end{itemize}
+\end{block}
+\pause
+
+\begin{block}{}
+Much harder to see higher-order interactions
+\end{block}
+
+## Interactions
+
+\fontsize{13}{14}\sf
+\alert{Interactions}:
+
+ * One possible type of interaction is obtained by multiplying the relevant columns of the model matrix.
+ * Use `a:b` for the interaction between `a` and `b`.
+ * Use `a*b` to mean `a + b + a:b`
+ * Need to specify explicit functions for other types of interaction. e.g., `I(a/b)`
+
+\alert{Limited order interactions}:
+
+  * Interactions up to 2nd order can be specified using the `^` operator.
+  * `(a+b+c)^2` is identical to `(a+b+c)*(a+b+c)`
+
+\alert{Nested factors}:
+
+ * `a + b %in% a` \quad expands to \quad `a + a:b`
+
+
+## Interpretation
+\vspace*{-0.2cm}
+
+* Each coefficient gives effect of one unit increase of predictor on response variable, *holding all other variables constant*.
+* Be careful with interactions: can't easily interpret main effects when predictors interact.
+
+\pause\vspace*{.1cm}\fontsize{13}{13}\sf
+
+### Visualization using visreg
+
+ * `visreg2d(ls_object, "xvar1", "xvar2")`
+ * `visreg2d(ls_object, "xvar1", "xvar2", plot.type='persp')`
+ * `visreg2d(ls_object, "xvar1", "xvar2", plot.type='rgl')`
+ * `visreg2d(ls_object, "xvar1", "xvar2", plot.type='gg')`
+
+# Hypothesis testing
+
+## Hypothesis testing
+
+* Use F-tests between models:
+
+    -  Model 1: $p_1$ parameters.
+    -  Model 2 (nested within Model 1): $p_2$ parameters
+
+\begin{block}{}
+$$F = \frac{(\text{RSS}_2 - \text{RSS}_1)/(p_1-p_2)}
+           {\text{RSS}_1/(n-p_1)}
+    \sim F_{p_1-p_2, n-p_1}
+$$
+\end{block}
+
+* Helper functions: `anova`, `drop1`
+* If one term dropped, this is equivalent to a t-test on coefficient.
+
+
+## Hypothesis testing
+\fontsize{13}{14}\sf
+
+### `anova(model)`
+ * provides sequential testing of terms (conditional on all previous terms)
+ * Order of terms will usually affect the p-values.
+ * Uses "Type 1" SS
+
+### `anova(model1, model2)`
+ * Tests two nested models.
+ * Avoids ordering problems
+
+### `drop1(model, test="F")`
+ * Equivalent to series of `anova(model1, model2)` calls where `model2` drops one variable at a time.
+ * Equivalent to "Type 3" SS
+
+
+# Variable selection
+
+## Akaike's Information Criterion
+
+\begin{block}{Akaike's Information Criterion}
+\centerline{$\text{AIC} = -2\log L + 2q$}
+where $q$ is the number of parameters in the model.
+\end{block}
+
+ * Select model with smallest AIC\pause
+ * For Gaussian errors:\vspace*{-0.6cm}
+
+\begin{align*}
+L & = \frac{1}{(2\pi\sigma^2)^{n/2}}\exp\left(-\frac1{2\sigma^2}(\bm{y}-\bm{X}\bm{\beta})'(\bm{y}-\bm{X}\bm{\beta})\right) \\
+-2\log L &= n \log(2\pi\sigma^2) + \frac1{2\sigma^2}(\bm{y}-\bm{X}\bm{\beta})'(\bm{y}-\bm{X}\bm{\beta}) \\
+        &= c + \frac{\text{SSE}}{2\sigma^2}\\
+\end{align*}
+
+\pause\only<3>{\begin{textblock}{7.5}(5.2,7.8)\fontsize{13.5}{15}\sf
+\begin{block}{}\texttt{extractAIC()} used by \texttt{step()} handles $c$ and $q$ differently from \texttt{AIC()}
+\end{block}
+\end{textblock}}
+
+
+## Variable selection
+
+\alert{\texttt{step()} will minimize AIC using backwards selection}\fontsize{13}{15}\sf
+
+### Best model with only main effects
+```r
+mod1 <- lm(y ~ x1 + x2 + x3, data=data) %>%
+  step()
+```
+
+### Best model with up to 2-way interactions
+```r
+mod2 <- lm(y ~ (x1 + x2 + x3)^2, data=data) %>%
+  step()
+```
+
+### Best model with up to 3-way interactions
+```r
+mod3 <- lm(y ~ (x1 + x2 + x3)^3, data=data) %>%
+  step()
+```
+
+
+## Variable selection and inference
+
+* Do not use coefficient t-tests for variable selection.
+* Beware of *any* statistical tests after variable selection.
+* Confidence intervals after variable selection are too narrow.
+* Variable selection is most useful for prediction. If you are only interested in inference, don't do it!
+

@@ -1,0 +1,209 @@
+---
+title: "ETC3580: Advanced Statistical Modelling"
+author: "Week 4: Binomial and proportion responses"
+fontsize: 14pt
+output:
+  beamer_presentation:
+    theme: metropolis
+    fig_height: 4.5
+    fig_width: 7
+    highlight: tango
+    includes:
+      in_header: header.tex
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, cache=TRUE, warning=FALSE, message=FALSE,
+  dev.args=list(bg=grey(0.9), pointsize=11))
+library(faraway)
+library(ggplot2)
+```
+
+
+# Binomial responses
+
+## Binomial responses
+\vspace*{-0.2cm}\fontsize{14}{15}\sf
+
+\begin{block}{Binomial distribution}
+$Y$ is binomially distributed $B(m,p)$ if
+ $$P(Y=y) = {m \choose y} p^y (1-p)^{m-y}$$
+$Y=$ number of "successes" in $m$ independent trials, each with probability $p$ of success.
+\end{block}
+
+* Likelihood
+$$ L = \prod_{i=1}^n {m_i \choose y_i} p_i^{y_i} (1-p_i)^{m_i-y_i}$$
+
+* Binomial regression also uses a logit link
+\begin{align*}
+ p_{i} &= e^{\eta_i} / (1+e^{\eta_i})\\
+ \eta_i &= \beta_0 + \beta_1 x_{i,1} + \dots + \beta_q x_{i,q}
+\end{align*}
+
+## Binomial likelihood
+\fontsize{13}{13}\sf
+\begin{block}{Likelihood}
+$$ L = \prod_{i=1}^n {m_i \choose y_i} p_i^{y_i} (1-p_i)^{m_i-y_i}$$
+\end{block}\fontsize{12}{12}\sf
+\begin{align*}
+\log L(\bm{\beta})
+ &= \sum_{i=1}^n \left[\log {m_i \choose y_i} + y_i\log(p_i) + (m_i-y_i)\log(1-p_i)\right]\\
+ & = \sum_{i=1}^n \left[\log {m_i \choose y_i} + y_i\eta_i - y_i\log(1+e^{\eta_i}) - (m_i-y_i)\log(1+e^{\eta_i}) \right] \\
+ & = \sum_{i=1}^n \left[\log {m_i \choose y_i} + y_i\eta_i - m_i\log(1+e^{\eta_i}) \right]
+\end{align*}
+
+## Binomial responses
+
+In R:
+
+ * `glm` needs a two-column matrix of success and failures. (So rows sum to $m$).
+
+```r
+fit <- glm(cbind(successes,failures) ~
+    x1 + x2,
+  family=binomial, data=df)
+```
+
+ * Everything else works the same as for binary regression.
+
+## Overdisperson
+
+ * If mean correctly modelled, but observed variance larger than model, we called the data "overdispersed". [Same for underdispersion.]
+ * Concept of overdispersion irrelevant for OLS and logistic regression because there cannot be any more variance than what is modelled.
+ * For binomial regression:
+  $y_i \sim B(m_i,p_i)$, $\E(y_i)= m_ip_i$, $\V(y_i) = m_ip_i(1-p_i)$.
+ * If model correct, $D = -2\log L \sim \chi^2_{n-q}$.
+
+     So $D>n-q$ indicates overdisperson.
+
+## Overdisperson
+
+$D>n-q$ can also be the result of:
+
+ * missing covariates or interaction terms
+ * negligence of non-linear effects
+ * large outliers
+ * sampling from clusters
+ * non-independence
+ * $m$ small ($\chi^2$ approximation fails)
+
+## Overdisperson
+\fontsize{14}{16}\sf
+
+\alert{Solution 1:} Drop strict binomial assumption and let
+$\E(y_i)= m_ip_i$, $\V(y_i) = \phi m_ip_i(1-p_i)$.
+
+\begin{block}{Pearson residuals}
+\centerline{$\displaystyle r_i = \frac{y_i - m_i\hat{p}_i}{\sqrt{m_i\hat{p}_i(1-\hat{p}_i)}}$}
+\end{block}
+
+\begin{block}{Simple estimate of dispersion parameter}
+Estimate\qquad\qquad  $\displaystyle\hat\phi = \frac1n\sum_{i=1}^n r_i^2$.
+\end{block}
+
+ * OK for estimation and standard errors on coefficients.
+ * But no proper inference via deviance.
+
+## Overdisperson
+
+\alert{Solution 2:} Define a "quasi-likelihood" that behaves like the log-likelihood but allows for $\V(y_i) = \phi m_ip_i(1-p_i)$.
+
+```r
+fit <- glm(cbind(successes,failures) ~
+    x1 + x2,
+  family=quasibinomial, data=df)
+```
+
+* Must use $F$-tests rather than $\chi^2$ tests for comparing models. (Approximation only.)
+
+\vspace*{3cm}
+
+## Inference for GLMs
+
+\begin{tabular}{lll}
+\toprule
+\bf Model & \bf $F$-test & \bf $\chi^2$ test \\
+\midrule
+Normal OLS & Exact & -- \\
+Binary Logistic & Approx & Better approx \\
+Binary Probit  & Approx & Better approx \\
+Binomial Logistic  & Approx & Better approx \\
+Quasibinomial logistic & Approx & -- \\
+\bottomrule
+\end{tabular}
+
+
+# Proportion responses
+
+## Proportion responses: three approaches
+
+Suppose $y \in [0,1]$.
+
+\begin{block}{logitNormal model}
+$$\log(y/(1-y)) \mid \bm{x} \sim \text{N}(\bm{x}'\bm{\beta}, \sigma^2)$$
+\end{block}
+
+\begin{block}{quasiBinomial model}
+$$y \mid \bm{x} \quad\text{has mean $p$ and variance $\phi p(1-p)$}$$
+$$\text{where}\qquad\log(p/(1-p)) = \bm{x}'\bm{\beta}$$
+\end{block}
+
+\begin{block}{Beta model}
+$$y \mid \bm{x} \sim \text{Beta}(a,b)$$
+$$\text{where}\qquad\E(y\mid\bm{x}) = a/(a+b) = e^{\bm{x}'\bm{\beta}}/(1+e^{\bm{x}'\bm{\beta}})$$
+\end{block}
+
+## logitNormal model
+
+\begin{block}{logitNormal model}
+$$\log(y/(1-y)) \mid \bm{x} \sim \text{N}(\bm{x}'\bm{\beta}, \sigma^2)$$
+\end{block}
+
+ * Provided no empirical proportions are at either 0 or 1, we can compute a logit transformation of the observed proportions. $\log(y/(1-y))$
+ * Then just fit a Gaussian linear regression using OLS.
+ * Back-transform the predictions using the inverse logit. $e^y/(1+e^y)$
+
+```r
+ lm(log(y/(1-y)) ~ x1 + x2, data=df)
+ ```
+
+## Quasi-binomial model
+
+\begin{block}{quasiBinomial model}
+$$y \mid \bm{x} \quad\text{has mean $p$ and variance $\phi p(1-p)$}$$
+$$\text{where}\qquad\log(p/(1-p)) = \bm{x}'\bm{\beta}$$
+\end{block}
+
+ * logit link keeps predicted proportions in $(0,1)$
+ * Variance function $\phi p(1-p)$ makes sense for proportions as greatest variation around $p=0.5$ and least around $p=0$ and $p=1$.
+
+```r
+glm(y ~ x1 + x2,
+  family=quasibinomial, data=df)
+```
+
+## Beta regression
+\fontsize{13}{14}\sf
+
+\begin{block}{Beta model}
+$$y \mid \bm{x} \sim \text{Beta}(a,b)$$
+$$\text{where}\qquad \E(y\mid\bm{x}) = a/(a+b) = e^{\bm{x}'\bm{\beta}}/(1+e^{\bm{x}'\bm{\beta}})$$
+\end{block}
+
+\begin{alertblock}{Beta density}
+$$f(y) = \frac{\Gamma(a+b)}{\Gamma(a)\Gamma(b)} y^{a-1} (1-y)^{b-1}$$
+\vspace*{-0.3cm}
+
+where $y\in[0,1]$ and
+$\Gamma(u) = \int _0^\infty x^{u-1}e^{-x} dx$.
+\begin{itemize}
+\item $\E(y) = \frac{a}{a+b}$ \qquad $\V(y) = \frac{ab}{(a+b)^2(a+b+1)}$
+\end{itemize}
+\end{alertblock}\pause
+
+* Reparameterize so $\mu=a/(a+b)$ and $\phi=a+b$.\pause
+* Then $\E(Y)=\mu$ and $\V(Y)=\mu(1-\mu)/(1+\phi)$.\pause
+
+```r
+mgcv::gam(y ~ x1 + x2, family=betar())
+```

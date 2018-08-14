@@ -1,0 +1,142 @@
+---
+title: "ETC3580: Advanced Statistical Modelling"
+author: "Week 2: Linear model diagnostics"
+fontsize: 14pt
+output:
+  beamer_presentation:
+    theme: metropolis
+    fig_height: 4.5
+    fig_width: 7
+    highlight: tango
+    includes:
+      in_header: header.tex
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, cache=TRUE, warning=FALSE, message=FALSE,
+  dev.args=list(bg=grey(0.9), pointsize=11))
+library(fpp2)
+```
+
+# Regression diagnostics
+
+## Regression diagnostics
+
+\alert{Plots that should be checked}
+
+ * Residuals vs Fitted: Check heteroskedasticity
+ * Residuals vs Predictors: Check for non-linearity
+ * Residuals vs Predictors not in model: Check for missing predictors
+ * Normal QQ plot: Check for non-normality
+ * Hat-values and Cooks distances: Check for influential points
+
+# Influence
+
+## LOO Residuals
+
+\begin{block}{Fitted values}
+$$
+  \hat{\bm{y}} = \bm{X}\hat{\bm{\beta}} = \bm{X}(\bm{X}'\bm{X})^{-1}\bm{X}'\bm{y} = \bm{H}\bm{y}
+$$
+\end{block}
+where $\bm{H} = \bm{X}(\bm{X}'\bm{X})^{-1}\bm{X}'$ is the ``hat matrix''.
+
+\pause
+
+\begin{alertblock}{Theorem: Leave-one-out residuals}
+Let $h_1,\dots,h_n$ be the diagonal values of $\bm{H}$. Then
+$e_{(i)} = e_i/(1-h_i)$ is the prediction error that would be obtained if the $i$th observation was omitted.
+\end{alertblock}
+
+\pause
+
+\begin{block}{Leverage values}
+$h_i$ is called the "leverage" of observation $i$.
+\end{block}
+
+**In R:** `hatvalues(fit)` or `broom::augment(fit)`
+
+## LOO Residuals
+
+Let $\bm{X}_{[i]}$ and $\bm{Y}_{[i]}$ be similar to $\bm{X}$ and $\bm{Y}$ but with the $i$th row deleted in each case. Let $\bm{x}'_i$ be the $i$th row of $\bm{X}$ and let
+$$
+\hat{\bm{\beta}}_{[i]} = (\bm{X}_{[i]}'\bm{X}_{[i]})^{-1}\bm{X}_{[i]}' \bm{Y}_{[i]}
+$$
+be the estimate of $\bm{\beta}$ without the $i$th case. Then $e_{[i]} = y_i - \bm{x}_i'\hat{\bm{\beta}}_{[i]}$.
+
+Now $\bm{X}_{[i]}'\bm{X}_{[i]} = (\bm{X}'\bm{X} - \bm{x}_i\bm{x}_i')$ and $\bm{x}_i'(\bm{X}'\bm{X})^{-1}\bm{x}_i = h_i$.
+
+## LOO Residuals
+
+\begin{block}{Sherman-Morrison-Woodbury formula}
+Suppose $\bm{A}$ is a square matrix, and $\bm{u}$ and $\bm{v}$ are column vectors of the same dimension. Then
+$$(\bm{A}+\bm{u}\bm{v}')^{-1} = \bm{A}^{-1} -
+  \frac{\bm{A}^{-1}\bm{u}\bm{v}' \bm{A}^{-1}}
+       {1 + \bm{v}' \bm{A}^{-1}\bm{u}}.
+$$
+\end{block}
+
+So by SMW,
+$$
+(\bm{X}_{[i]}'\bm{X}_{[i]})^{-1} = (\bm{X}'\bm{X})^{-1} + \frac{(\bm{X}'\bm{X})^{-1}\bm{x}_i\bm{x}_i'(\bm{X}'\bm{X})^{-1}}{1-h_i}.
+$$
+Also note that $\bm{X}_{[i]}' \bm{Y}_{[i]} = \bm{X}'\bm{Y} - \bm{x}y_i$.
+
+## LOO Residuals
+
+Therefore
+\begin{align*}
+\bm{\hat{\beta}}_{[i]}
+&=  \left[ (\bm{X}'\bm{X})^{-1}  + \frac{ (\bm{X}'\bm{X})^{-1}\bm{x}_i\bm{x}_i'(\bm{X}'\bm{X})^{-1} }{1-h_i} \right] (\bm{X}'\bm{Y} - \bm{x}_i y_i)\\\\
+&=  \hat{\bm{\beta}} - \left[ \frac{ (\bm{X}'\bm{X})^{-1}\bm{x}_i}{1-h_i}\right] \left[y_i(1-h_i) -  \bm{x}_i' \hat{\bm{\beta}} +h_i y_i \right]\\\\
+&=  \hat{\bm{\beta}} - (\bm{X}'\bm{X})^{-1}\bm{x}_i e_i / (1-h_i)
+\end{align*}
+
+## LOO Residuals
+
+Thus
+\begin{align*}
+e_{[i]} &= y_i - \bm{x}_i'\hat{\bm{\beta}}_{[i]} \\
+& = y_i - \bm{x}_i' \left[ \hat{\bm{\beta}} - (\bm{X}'\bm{X})^{-1}\bm{x}_ie_i/(1-h_i)\right] \\
+&= e_i + h_i e_i/(1-h_i) \\
+&= e_i/(1-h_i),
+\end{align*}
+
+## LOO Residuals
+
+### Cross-validation statistic
+$$
+\text{CV} = \frac1T\sum_{i=1}^n[e_i/(1-h_i)]^2,
+$$
+\vspace*{0.01cm}
+
+ * Measures MSE of out-of-sample prediction
+ * Asymptotically equivalent to AIC (up to monotonic transformation)
+
+### Cook distances
+$$
+ D_i = \frac{e_i^2h_i}{\hat{\sigma}^2p(1-h_i)}
+$$
+\vspace*{0.01cm}
+
+ * Measures change in fit if observation $i$ dropped.
+
+# R functions
+
+## Residual diagnostics
+
+`broom::augment` computes
+
+ * fitted values
+ * se(fit)
+ * residuals
+ * hat values
+ * cooks distance
+ * standardized residuals
+
+###
+This does not allow for matrix inputs such as `poly(x,2)`
+
+### Other functions
+ * `dfbeta`: $\hat{\bm{\beta}} - \hat{\bm{\beta}}_{(i)}$
+

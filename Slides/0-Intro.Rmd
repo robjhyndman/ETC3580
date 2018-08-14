@@ -1,0 +1,108 @@
+---
+title: "ETC3580: Advanced Statistical Modelling"
+author: "Subject information"
+fontsize: 14pt
+output:
+  beamer_presentation:
+    theme: metropolis
+    fig_height: 4.5
+    fig_width: 7
+    highlight: tango
+    includes:
+      in_header: header.tex
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, cache=TRUE, warning=FALSE, message=FALSE,
+  dev.args=list(bg=grey(0.9), pointsize=11))
+```
+
+# Contact details
+
+## Lecturer
+
+**Professor Rob Hyndman**
+
+  - Room E762, Menzies Building
+  - Email: Rob.Hyndman@monash.edu
+  - robjhyndman.com
+
+## Tutor
+
+**Mitchell O'Hara-Wild**
+
+  - Email: Mitch.OHara-Wild@monash.edu
+
+# Unit objectives
+
+  1. provide an understanding of statistical models for handling common data analysis problems
+  2. develop skills for fitting, interpreting and assessing statistical models
+  3. develop computer skills for exploring and modelling different kinds of data.
+
+## Teaching and learning approach
+
+ * Two 50 min lectures\newline (Mon 1.00pm; Tues 12.00pm)
+ * One 80 min tutorial\newline (Mon 2.00pm or Mon 3.30pm)
+
+#
+\placefig{.4}{1.}{width=6cm}{RStudio-Ball}
+
+\placefig{6.79}{0}{width=7.5cm,height=9.6cm}{ELM}
+
+\begin{textblock}{2.5}(.5,8.5)
+\begin{block}{}rstudio.com\end{block}
+\end{textblock}
+
+# Outline
+
+\fontsize{12}{13}\sf
+
+\hspace*{-0.8cm}\begin{tabular}{@{}rll@{}}
+\bf Week & \multicolumn{2}{l}{\textbf{Topic}} \\
+\midrule
+1  & LM   & Graphics for linear models and interpreting interactions\\
+2  & LM   & Leverage, influence, residual diagnostics\\
+3  & GLM  & Regression with binary responses \\
+4  & GLM  & Regression with binomial and proportional responses\\
+5  & GLM  & Regression with count responses\\
+6  & GLM  & Generalized linear model theory\\
+7  & GLMM & Random effects\\
+8  & GLMM & Panel data and hierarchical linear models\\
+9  & GLMM & Mixed effects models for non-Gaussian responses\\
+10 & GAM  & Regression splines, additive models\\
+11 & GAM  & B-splines and penalized regression splines\\
+12 & GAM  & GAMMs
+\end{tabular}
+
+\begin{textblock}{4.2}(.5,8.5)
+\begin{block}{}Approximate weeks only\end{block}
+\end{textblock}
+
+# Assessment
+
+\begin{tabular}{lll}
+  \toprule
+    \textbf{Task}  & \textbf{Due Date}     & \textbf{Value} \\
+  \midrule
+    Assignment 1 & 12 August            & 10\%\\
+    Assignment 2 & 2 September          & 10\%\\
+    Assignment 3 & 30 September         & 10\%\\
+    Assignment 4 & 21 October           & 10\%\\
+    Final exam   & Official exam period & 60\%\\
+  \bottomrule
+\end{tabular}
+
+\vspace*{0.8cm}
+
+\pause
+
+  - Need at least 50\% for exam.
+  - Need at least 50\% for total.
+
+# DataCamp
+
+\full{DataCamp}
+
+\begin{textblock}{3}(9.5,8.5)
+\begin{block}{}datacamp.com\end{block}
+\end{textblock}
