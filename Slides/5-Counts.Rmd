@@ -84,7 +84,7 @@ Suppose response $Y$ is a count (0,1,2,\dots).
  * Likelihood: $\displaystyle L = \prod_{i=1}^n \frac{\exp^{-\mu_i}\mu_i^{y_i}}{y_i!}$\pause
 \begin{align*}
 \log L &= \sum_{i=1}^n \left[-\mu_i + y_i\log(\mu_i) - \log(y_i!)\right] \\
-       &= \sum_{i=1}^n \left[-\exp(\bm{x}_i'\bm{\beta}) + y_i\bm{x}_i'\bm{\beta} - \log(y_i!)\right] 
+       &= \sum_{i=1}^n \left[-\exp(\bm{x}_i'\bm{\beta}) + y_i\bm{x}_i'\bm{\beta} - \log(y_i!)\right]
 \end{align*}\pause\vspace*{-0.5cm}
 
 ```r
@@ -102,7 +102,7 @@ D = -2\log L &= -2\sum_{i=1}^n \left[-\hat\mu_i + y_i\log(\hat\mu_i) - \log(y_i!
 * Check distributional assumptions by comparing $D$ against $\chi^2$
 * Compare changes in deviance using a $\chi^2$ test as for binomial regression.
 * Use profile likelihood to find confidence intervals for parameters.
-* Common for a model to be "over-dispersed". 
+* Common for a model to be "over-dispersed".
 
 ## Dispersed Poisson model
 
@@ -115,13 +115,17 @@ When model is over-dispersed (variance too large):
 
 ## Quasi-Poisson models
 
+Assumes:
+$$ Y \in \{0,1,2,\dots\}\qquad
+\E(Y) = \mu,\qquad \text{Var}(Y)=\phi\mu$$
+
 ```r
-fit <- glm(y ~ x1 + x2, 
+fit <- glm(y ~ x1 + x2,
   family='quasipoisson', data)
 ```
 
  * Use $F$-tests not $\chi^2$ tests when using quasi-Poisson models
- * Overdispersion parameter represents the variance inflation
+ * Overdispersion parameter $\phi$ represents the variance inflation
 
 # Negative binomial regression
 
@@ -139,17 +143,16 @@ $$P(Z=z) = {z-1 \choose k-1} p^k (1-p)^{z-k}, \qquad z=k,k+1,\dots$$
 * $p = k/(k+\mu)$
 
 ## Negative binomial regression
+\fontsize{13}{14}\sf
 
 \begin{block}{}
 $Y_i \sim \text{NegBin}-k$ with mean $\mu_i$ and variance $\mu_i+\mu_i^2/k$.
-$$\eta_i = \log\left(\frac{\mu_i}{\mu_i+k}\right) = 
+$$\eta_i = \log\left(\frac{\mu_i}{\mu_i+k}\right) =
  \beta_0 + \beta_1 x_{i,1} + \dots + \beta_q x_{i,q}$$
 \end{block}
 
  * $k$ (the "dispersion" parameter) is usually estimated along with the coefficients by MLE:
-
-$$ L = \prod_{i=1}^n {y_i+k-1 \choose k-1} p_i^k (1-p_i)^{y_i}$$
-
+$$ L = \prod_{i=1}^n {y_i+k-1 \choose k-1} p_i^k (1-p_i)^{y_i}$$\vspace*{-0.3cm}
 
 \begin{align*}
 \log L &= \sum_{i=1}^n \Bigg(y_i \log\left(\frac{\mu_i}{\mu_i+k}\right) - k log(1+\mu_i/k) \\
@@ -160,9 +163,11 @@ $$ L = \prod_{i=1}^n {y_i+k-1 \choose k-1} p_i^k (1-p_i)^{y_i}$$
 ## Negative binomial regression
 
 ```r
-fit <- glm(y ~ x1 + x2, 
+# Specified k
+fit <- glm(y ~ x1 + x2,
   family=negative.binomial(k), data)
 
+# Estimated k
 fit <- MASS::glm.nb(y ~ x1 + x2, data)
 ```
 
@@ -185,7 +190,7 @@ Over-dispersed models do not deal adequately with this type of data.
 \alert{Solution 1}: Hurdle model
 
  * Model for probability of zero (logistic).
- * Model for non-zero counts (truncated Poisson).\vspace*{-0.4cm}
+ * Model for non-zero counts (truncated Poisson).
 \begin{align*}
   P(Y=0) &= p \\
   P(Y=j) &= \frac{1-p}{1-f(0)} f(j), \qquad j>0
@@ -203,7 +208,7 @@ fit <- pscl::hurdle(y ~ x1 + x2, data)
 \alert{Solution 2}: Mixture model
 
  * Model for probability of always zero (logistic).
- * Model for counts (regular Poisson).\vspace*{-0.4cm}
+ * Model for counts (regular Poisson).
 \begin{align*}
   P(Y=0) &= p + (1-p) f(0) \\
   P(Y=j) &= (1-p) f(j), \qquad j>0
@@ -221,7 +226,7 @@ fit <- pscl::zeroinfl(y ~ x1 + x2, data)
 
  * Often difficult to select between these -- what makes most sense for the application?
  * Can have different predictors for the two sub-models:
- 
+
     ```r
     fit <- zeroinfl(y ~ x1 + x2 | x3, data)
     ```
