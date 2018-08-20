@@ -69,39 +69,3 @@ visreg(modnb)
 augment(modnb) %>%
   ggplot(aes(x=.fitted, y=.resid)) +
   geom_point()
-
-## Zero-inflated Poisson models
-
-library(pscl)
-help(bioChemists)
-head(bioChemists)
-summary(bioChemists)
-
-modp <- glm(art ~ fem + mar + kid5 + phd + ment, data=bioChemists, family=poisson)
-summary(modp)
-1-pchisq(deviance(modp), df.residual(modp))
-# Does not fit well
-
-bioChemists %>% count(art)
-ocount <- bioChemists %>% count(art) %>% select(n) %>% as_vector()
-pcount <- colSums(predprob(modp)[,1:15])
-ocount - pcount
-## Looks like too many zeros
-
-modh <- hurdle(art ~ fem + mar + kid5 + phd + ment, data=bioChemists)
-summary(modh)
-modz <- zeroinfl(art ~ fem + mar + kid5 + phd + ment, data=bioChemists)
-summary(modz)
-
-ggplot() +
-  geom_point(aes(x=fitted(modh), y=fitted(modz))) +
-  xlab("Hurdle predictions") + ylab("ZIP predictions") +
-  geom_abline(slope=1, intercept=0)
-
-modz2 <- zeroinfl(art ~ fem + kid5 + ment | ment, data=bioChemists)
-summary(modz2)
-
-newman <- data.frame(fem="Men",mar="Single",kid5=0,ment=6)
-predict(modz2, newdata=newman, type="prob")
-predict(modz2, newdata=newman, type="zero")
-
