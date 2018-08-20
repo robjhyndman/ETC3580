@@ -14,7 +14,7 @@ gala <- faraway::gala %>%
 gala
 
 # Some pairwise scaterplots
-GGally::ggpairs(gala)
+GGally::ggpairs(gala[,1:7])
 
 # Fit regular linear model
 modl <- lm(Species ~ Area + Elevation + Nearest + Scruz + Adjacent,
@@ -38,6 +38,8 @@ summary(gala)
 modp2 <- glm(Species ~ sqrt(Area) + sqrt(Elevation) + sqrt(Nearest) +
                sqrt(Scruz) + sqrt(Adjacent),
             family=poisson, gala)
+visreg(modp2)
+summary(modp2)
 ## Note residual deviance is huge compared to df. (Should be about the same)
 1-pchisq(deviance(modp2), df.residual(modp2))
 
@@ -49,9 +51,9 @@ summary(modd)
 # Check out the dispersion parameter -- a whopping 30!
 drop1(modd,test="F")
 # Only Elevation and Adjacent variables appear useful.
-visreg(modp2)
+visreg(modd)
 
-augment(modp2) %>%
+augment(modd) %>%
   ggplot(aes(x=.fitted, y=.resid)) +
   geom_point()
 
@@ -60,15 +62,13 @@ modnb <- MASS::glm.nb(Species ~ sqrt(Area) + sqrt(Elevation) + sqrt(Nearest) +
              sqrt(Scruz) + sqrt(Adjacent),
            gala)
 summary(modnb)
+1-pchisq(deviance(modnb), df.residual(modnb))
 drop1(modnb, test="Chisq")
 
 visreg(modnb)
 augment(modnb) %>%
   ggplot(aes(x=.fitted, y=.resid)) +
   geom_point()
-
-autoplot(modnb)
-
 
 ## Zero-inflated Poisson models
 
