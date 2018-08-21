@@ -1,0 +1,559 @@
+---
+title: "ETC3580: Advanced Statistical Modelling"
+author: "Week 6: Generalized Linear Models"
+fontsize: 14pt
+output:
+  beamer_presentation:
+    theme: metropolis
+    fig_height: 4.5
+    fig_width: 7
+    highlight: tango
+    includes:
+      in_header: header.tex
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, cache=TRUE, warning=FALSE, message=FALSE,
+  dev.args=list(bg=grey(0.9), pointsize=11))
+library(faraway)
+library(tidyverse)
+```
+
+
+# Exponential family distributions
+
+## Exponential family distributions
+
+\begin{block}{}
+$$f(y | \theta, \phi) = \exp\left[\frac{y\theta - b(\theta)}{a(\phi)} + c(y,\phi)\right]$$
+\begin{itemize}\tightlist
+\item $\theta$ is canonical parameter for location
+\item $\phi$ is dispersion parameter for scale
+\item $a$, $b$ and $c$ are functions.
+\end{itemize}
+\end{block}
+\pause
+
+\alert{Example: Normal}
+$$f(y | \theta, \phi) = \frac{1}{\sigma\sqrt{2\pi}} \exp\left[-\frac{(y-\mu)^2}{2\sigma^2}\right]$$
+$\theta=\mu$\quad $\phi=\sigma^2$\quad $a(\phi)=\phi$\quad $b(\theta)=\theta^2/2$ $c(y,\phi) = -(y^2/\phi + \log(2\pi\phi))/2$
+
+\vspace*{10cm}
+
+## Exponential family distributions
+
+\begin{block}{}
+$$f(y | \theta, \phi) = \exp\left[\frac{y\theta - b(\theta)}{a(\phi)} + c(y,\phi)\right]$$
+\begin{itemize}\tightlist
+\item $\theta$ is canonical parameter for location
+\item $\phi$ is dispersion parameter for scale
+\item $a$, $b$ and $c$ are functions.
+\end{itemize}
+\end{block}
+
+\alert{Example: Poisson}
+$$f(y | \theta, \phi) = e^{-\mu} \mu^y / y!$$
+What are $\theta$, $\phi$, $a$, $b$ and $c$?
+
+\vspace*{10cm}
+
+## Exponential family distributions
+
+\begin{block}{}
+$$f(y | \theta, \phi) = \exp\left[\frac{y\theta - b(\theta)}{a(\phi)} + c(y,\phi)\right]$$
+\begin{itemize}\tightlist
+\item $\theta$ is canonical parameter for location
+\item $\phi$ is dispersion parameter for scale
+\item $a$, $b$ and $c$ are functions.
+\end{itemize}
+\end{block}
+
+\alert{Example: Binomial}
+$$f(y | \theta, \phi) = {m \choose y} p^y (1-p)^{m-y}$$
+What are $\theta$, $\phi$, $a$, $b$ and $c$?
+
+\vspace*{10cm}
+
+## Exponential family distributions
+
+\begin{block}{}
+$$f(y | \theta, \phi) = \exp\left[\frac{y\theta - b(\theta)}{a(\phi)} + c(y,\phi)\right]$$
+\begin{itemize}\tightlist
+\item $\theta$ is canonical parameter for location
+\item $\phi$ is dispersion parameter for scale
+\item $a$, $b$ and $c$ are functions.
+\end{itemize}
+\end{block}
+
+\alert{Examples:} Normal, Poisson, Binomial, 
+\rightline{gamma, inverse Gaussian}
+
+\begin{alertblock}{Moments}
+\begin{enumerate}
+ \item Mean: $b'(\theta)$
+ \item Variance: $b''(\theta)a(\phi)$
+\end{enumerate}
+\end{alertblock}
+
+\vspace*{10cm}
+
+# Generalized Linear Models
+
+## Generalized Linear Models
+
+A GLM consists of three components:
+
+1. Distribution (from the exponential family of distributions)
+2. Linear predictors
+3. Link function
+
+## Link functions
+
+ * The predictors are assumed to affect the response through a linear relationship.
+ * The link function $g$ "links" the mean to the linear predictors.
+
+\begin{block}{}
+\centerline{$g(\mu) = \beta_0 + \beta_1 x_1 + \dots + \beta_q x_q $}
+\end{block}\pause
+
+ * $g$ must be monotone, continuous and differentiable.
+ * $g$ must map the space of $\mu$ to $\mathbb{R}$.
+ * Canonical link has $g(\mu)=\theta$.
+
+
+## Link functions
+
+\begin{block}{}
+\begin{tabular}{lll}
+\bf Family       & \bf Canonical link  & \bf Variance \\
+\midrule
+Normal           & $\mu$               & 1 \\
+Poisson          & $\log \mu$          & $\mu$ \\
+Binomial         & $\log(\mu/(1-\mu))$ & $\mu(1-\mu)$ \\
+Gamma            & $1/\mu$             & $\mu^2$ \\
+Inverse Gaussian & $1/\mu^2$           & $\mu^3$ 
+\end{tabular}
+\end{block}
+
+ * Canonicial link means $\bm{X}'\bm{y}$ is \emph{sufficient}.
+ * Makes estimation easy and inference exact.
+
+## Log Likelihood
+
+\begin{alertblock}{}
+\centerline{$f(y | \theta, \phi) = \exp\left[\frac{y\theta - b(\theta)}{a(\phi)} + c(y,\phi)\right]$}
+\end{alertblock}\pause
+
+\begin{align*}
+\ell(\bm{\beta}; \bm{y}) = \log L(\bm{\beta};\bm{y})
+ &= \sum_{i=1}^n \left[ \frac{y_i\theta_i - b(\theta_i)}{a(\phi)} + c(y_i,\phi) \right] \\
+ & =  \frac{1}{a(\phi)} \sum_{i=1}^n\left[ y_i \theta_i - b(\theta_i) + c(y_i,\phi)a(\phi) \right]
+\end{align*}\pause
+\begin{align*}
+\frac{\partial \ell(\bm{\beta}; \bm{y})}{\partial \beta_j}
+ & = \frac{1}{a(\phi)} \sum_{i=1}^n \frac{\partial}{\partial \beta_j} \left[ y_i \theta_i - b(\theta_i)\right] \\
+ & = \frac{1}{a(\phi)} \sum_{i=1}^n \left[ y_i \frac{\partial \theta_i}{\partial \beta_j} - \frac{\partial b(\theta_i)}{\partial \beta_j}\right] \\
+\end{align*}
+
+
+## Log Likelihood
+
+Now
+
+$$\frac{\partial b(\theta)}{\partial \beta_j} = b'(\theta) \frac{\partial \theta}{\partial \beta_j} 
+\qquad\text{and}\qquad
+\frac{\partial \theta}{\partial \beta_j} = \frac{\partial \theta}{\partial \mu}\frac{\partial \mu}{\partial \beta_j} = \frac{1}{b''(\theta)}\frac{\partial \mu}{\partial \beta_j}$$
+
+Therefore
+\begin{align*}
+\frac{\partial \ell(\bm{\beta}; \bm{y})}{\partial \beta_j}
+ & = \frac{1}{a(\phi)} \sum_{i=1}^n \left[ y_i \frac{1}{b''(\theta_i)}\frac{\partial \mu_i}{\partial \beta_j} - \frac{b'(\theta_i)}{b''(\theta_i)}\frac{\partial \mu_i}{\partial \beta_j}\right] \\
+ &= \frac{1}{a(\phi)} \sum_{i=1}^n \left[\frac{ y_i -b'(\theta_i) }{b''(\theta_i)}\right]
+ \frac{\partial \mu_i}{\partial \beta_j} \\
+ &=  \sum_{i=1}^n \left[\frac{ y_i -\mu_i }{V(\mu_i)}\right]
+ \frac{\partial \mu_i}{\partial \beta_j} 
+\end{align*}
+
+## Maximum likelihood estimation
+
+\begin{block}{Maximum likelihood estimates:}
+\centerline{$\displaystyle
+\sum_{i=1}^n \left[\frac{ y_i -b'(\theta_i) }{V(\mu_i)}\right]
+ \frac{\partial \mu_i}{\partial \beta_j}  = 0\qquad \text{for all $j$}
+$}
+\end{block}
+\pause
+Same equations as for weighted least squares with known $V(\mu)$:
+$$
+\text{Minimize}\qquad \sum_{i=1}^n \left[\frac{ (y_i -\mu_i)^2 }{V(\mu_i)}\right]
+$$\pause\vspace*{-0.5cm}
+
+ * When $V(\mu)$ is constant, OLS = MLE
+ * We can guess $\mu$, and use iterated WLS to solve.
+ * Distribution not used, only $g(\mu)$ and $V(\mu)$.
+ * So same equations work for quasi-likelihood
+
+## Implementation in R
+
+```r
+fit <- glm(y ~ x1 + x2, family, data)
+```
+
+\alert{family options}\fontsize{13}{15}\sf
+
+```r
+binomial(link = "logit")
+gaussian(link = "identity")
+Gamma(link = "inverse")
+inverse.gaussian(link = "1/mu^2")
+poisson(link = "log")
+quasi(link = "identity", variance = "constant")
+quasibinomial(link = "logit")
+quasipoisson(link = "log")
+```
+
+## Implementation in R
+
+```r
+fit <- glm(y ~ x1 + x2, family, data)
+```
+
+\alert{link options}\fontsize{13}{13}\sf
+
+
+```r
+identity
+log
+inverse
+logit
+probit
+cauchit
+cloglog
+sqrt
+1/mu^2
+power
+```
+
+## Question
+
+What is the difference between these?
+
+```r
+lm(y ~ x)
+```
+
+and
+
+```r
+glm(y ~ x)
+```
+
+
+## Question
+
+What is the difference between these?
+
+```r
+lm(log(y) ~ x)
+```
+
+and
+
+```r
+glm(y ~ x, family=gaussian(link='log'))
+```
+
+## Deviances
+\fontsize{13}{30}\sf
+
+\begin{tabular}{ll}
+\bf GLM & \bf Deviance: $D=-2\log L$ \\
+\midrule
+Gaussian & $\displaystyle\sum (y_i-\hat\mu_i)^2$ \\
+Poisson & $2\displaystyle\sum \left[y_i \log\left(\frac{y_i}{\hat\mu_i}\right) - (y_i-\hat\mu_i)\right]$ \\
+Binomial &  $2\displaystyle\sum \left[y_i \log\left(\frac{y_i}{\hat\mu_i}\right) +(m-y_i) \log\left(\frac{m-y_i}{m-\hat\mu_i}\right)\right]$ \\
+Gamma & $2\displaystyle\sum \left[- \log\left(\frac{y_i}{\hat\mu_i}\right) + \frac{y_i-\hat{\mu}_i}{\hat\mu_i}\right]$ \\
+Inverse Gaussian & $\displaystyle\sum \frac{(y_i-\hat\mu_i)^2}{\hat\mu_i^2 y_i}$
+\end{tabular}
+
+
+## Hypothesis tests
+
+\alert{Goodness-of-fit test}
+
+ * Does data fit assumed distribution?
+ * Deviance has $\chi^2$ distribution with df = $n-$ \# estimated parameters
+ * Only works for large $n$ and for distributions with no dispersion parameter.
+ * Does not work for binary GLM, Gaussian LM, or any quasi family
+ * Binary does not need checking
+ * For Gaussian, look at residuals
+ * For quasi family, it depends \dots
+
+## Hypothesis tests
+
+\alert{Comparing nested models}
+
+Large model $\Omega$; small model $\omega$
+
+ * Change in Deviance $(D_\omega - D_\Omega)$ equivalent to log-ratio test and has $\chi^2$ distribution with df = $\text{df}_\omega - \text{dw}_\Omega$ = difference in number of parameters
+ * For quasi-likelihood, use an $F$ approximation instead (exact for Gaussian).
+
+$$F = \frac{D_\omega - D_\Omega}{\hat{\phi}(\text{df}_\omega - \text{df}_\Omega)}
+\quad\text{where}\quad
+\hat\phi = \frac{1}{n-p} \sum_{i=1}^n \frac{(y_i-\hat{\mu}_i)^2}{V(\mu_i)}
+$$
+
+# GLM Diagnostics
+
+## GLM Residuals
+
+\alert{Response residuals}: Observation -- estimate
+\begin{block}{}
+\centerline{$e_i = y_i - \hat{\mu}_i$}
+\end{block}
+\pause
+
+\alert{Pearson residuals}: Standardized
+\begin{block}{}
+\centerline{$r_i = \frac{y_i - \hat{\mu}_i}{\sqrt{V(\hat\mu_i)}}$}
+\end{block}
+\pause
+
+\alert{Deviance residuals}:  Signed root contribution to \rlap{$-2\log L$.}
+$$ -2\log L = \sum \delta_i$$
+\begin{block}{}
+\centerline{$d_i = sign(y_i-\hat\mu_i) \sqrt{\delta_i} $}
+\end{block}
+
+## GLM Residuals
+
+\alert{Response residuals}
+
+```r
+augment(fit, type.residuals='response')
+```
+
+\alert{Pearson residuals}
+
+```r
+augment(fit, type.residuals='pearson')
+```
+
+\alert{Deviance residuals}
+
+```r
+augment(fit, type.residuals='deviance')
+augment(fit)
+```
+
+## GLM Leverage and Influence
+
+IRWLS algorithm used for estimation means that we can easily define the hat matrix:
+$$\bm{H} = \bm{W}^{1/2}\bm{X}(\bm{X}'\bm{W}\bm{X})^{-1}\bm{X}'\bm{W}^{1/2}$$
+where
+$\bm{W}$ is diagonal with values $\frac{1}{V(\mu_i)}\left(\frac{\partial \mu_i}{\partial \eta_i}\right)^2$.
+
+ * Leverage values are diagonals of $\bm{H}$.
+ * `augment(fit) %>% select(.hat)`
+
+\pause
+
+\alert{Cooks Distance}
+$$D_i = \frac{(\hat{\bm\beta}_{(i)} - \hat{\bm\beta})'(\bm{X}'\bm{W}\bm{X})
+(\hat{\bm\beta}_{(i)} - \hat{\bm\beta})}{p\hat\phi}$$
+
+ * `augment(fit) %>% select(.cooksd)`
+
+
+## Diagnostics
+
+\alert{Case checking}
+
+* Outliers (large residuals)
+* High leverage points (large effect on estimates)
+
+\alert{Model checking}
+
+* Heteroskedasticity
+* Linearity
+* Distribution
+
+## Diagnostics
+\fontsize{13}{13}\sf
+
+\alert{Case checking}
+
+ * Why do we have outliers? Perhaps omit them?
+ * Reduce leverage through transforming predictors
+
+\alert{Model checking}
+
+  * Heteroskedasticity: perhaps use weights?
+  * Linearity:
+
+    - transform predictors
+    - add quadratic or other transformed variable
+    - use nonparametric regressor (later)
+  
+  * Distribution:
+  
+    - allow for overdispersion using quasilikelihood
+    - zero-inflated
+    - often fixing hetero and linearity will fix distribution
+
+# Additional distributions
+
+## Gamma GLM
+
+Defined on $\mathbb{R}^+$
+\begin{block}{Gamma distribution}
+\centerline{$f(y) = \frac{1}{\Gamma(\nu)} \lambda^\nu y^{\nu-1} e^{-\lambda y}$}
+\begin{itemize}\tightlist
+\item $\nu$ describes shape; $\lambda$ describes scale
+\item $\chi^2$ is special case ($\lambda=0.5, \text{df}=2\nu$)
+\end{itemize}
+\end{block}\pause
+
+\begin{block}{Reparameterize with $\lambda=\nu/\mu$:}
+\centerline{$f(y) = \frac{1}{\Gamma(\nu)} \left(\frac{\nu}{\mu}\right)^\nu y^{\nu-1} e^{-y\nu/\mu}$}
+\begin{itemize}\tightlist
+\item $\nu$ describes shape
+\item $\mu$ is mean; $\V(Y) = \mu^2/\nu$
+\end{itemize}
+\end{block}\pause\vspace*{-0.4cm}
+
+```r
+glm(y ~ x1+x2, family=Gamma(link='log'))
+```
+
+## Gamma GLM
+
+ * Canonical link is inverse. Better to use log.
+ * When variance small, it is very similar to Gaussian model with logged response.
+ * Inference sensitive to distributional mis-specification
+ 
+
+## Inverse Gaussian GLM
+
+Defined on $\mathbb{R}^+$
+\begin{block}{Inverse Gaussian distribution}
+\centerline{$f(y) = \sqrt{\frac{\lambda}{2\pi y^3}} \exp\left[-\lambda(y-\mu)^2/2\mu^2y\right]$}
+\begin{itemize}\tightlist
+\item $\mu=$ mean; $\V = \mu^3/\lambda$
+\item $\mu=1$ is special case (Wald distribution)
+\end{itemize}
+\end{block}\pause
+
+ * Canonical link is $1/\mu^2$
+ * Variance increases with $\mu$ more rapidly than Gamma.
+ * As $\lambda \rightarrow\infty$, distribution converges to Gaussian.
+ * First derived by Schrödinger
+
+## Tweedie GLM
+
+### Tweedie distribution
+
+Exponential family distribution where  $\V(Y)=a \mu^p$, $a>0$, $p>0$.
+
+\fontsize{13}{14}\sf
+
+ * normal distribution, $p = 0$
+ * Poisson distribution, $p = 1$
+ * compound Poisson–gamma distribution, $1 < p < 2$
+ * gamma distribution, $p = 2$
+ * positive stable distributions, $2 < p < 3$
+ * inverse Gaussian distribution, $p = 3$
+ * positive stable distributions, $p > 3$
+ * extreme stable distributions, $p = \infty$
+
+For $0 < p < 1$ no Tweedie model exists.
+
+## Compound Poisson-gamma distribution
+
+\begin{block}{}
+$$Y = \sum_{i=1}^N X_i, \qquad N \sim \text{Poisson}, \qquad X_i \sim \text{Gamma}$$
+\end{block}
+
+ * Continuous on $[0,\infty]$ with a spike at 0.
+    
+     (e.g., rainfall, insurance payouts.)
+
+ * Tweedie distribution with $1 < p < 2$.
+ * Poisson mean: $\mu^{2-p}/[(2-p)\phi]$. 
+ * Gamma parameters: $\nu=(2-p)/(p-1)$, $\lambda=1/[\phi(p-1)\mu^{p-1}]$
+
+\pause
+
+\begin{alertblock}{}
+Show mean $= \mu$.
+
+Show var $= \phi\mu^{p}$
+\end{alertblock}
+
+## Compound Poisson-gamma distribution
+
+
+\begin{align*}
+\E(N) &= \V(N) = \frac{\mu^{2-p}}{(2-p)\phi} \\
+\E(X) &= \frac{(2-p)}{(p-1)}\left(\phi(p-1)\mu^{p-1}\right) = \phi(2-p)\mu^{p-1} \\
+\V(X) &= \frac{(2-p)}{(p-1)}\left(\phi^2(p-1)^2\mu^{2(p-1)}\right) \\
+      &= \phi^2(2-p)(p-1)\mu^{2(p-1)}
+\end{align*}
+
+## Compound Poisson-gamma distribution
+
+
+\begin{align*}
+\E(Y) &= \E_N[Y\mid N] \\
+ &= \E_N[ N \E(X)] \\
+ &= \E(N)\E(X)\\
+  &= \frac{\mu^{2-p}}{(2-p)\phi} \left[\phi(2-p)\mu^{p-1}\right] \\
+  &= \mu
+\end{align*}
+
+## Compound Poisson-gamma distribution
+\vspace*{-0.6cm}
+
+\begin{align*}
+\V(Y) &= \V_N[\E_X(Y\mid N)] + \E_N[\V_X(Y\mid N)]\\
+&= \V_N[N\E(X)] + \E_N[N\V(X)]\\
+&= \V(N)[\E(X)]^2 + \E(N)\V(X)\\
+&= \E(N)\left( [\E(X)]^2 + \V(X)\right) \\
+&= \frac{\mu^{2-p}}{(2-p)\phi} \bigg( \phi^2(2-p)^2\mu^{2(p-1)} \\[-0.3cm]
+&\hspace*{4.5cm} + \phi^2(2-p)(p-1)\mu^{2(p-1)}  \bigg) \\
+&= \frac{\mu^{2-p+2p-2}\phi^2(2-p)}{(2-p)\phi} \bigg((2-p) + (p-1) \bigg) \\
+&= \phi\mu^{p}
+\end{align*}
+
+## Compound Poisson-gamma GLM
+
+```r
+mgcv::gam(y ~ x1 + x2, 
+           family=tw(link="log"))
+```
+
+*  Estimates $p$ assuming it is in $(1,2)$.
+
+## Tweedie GLMs
+
+* No R function for general Tweedie GLM. 
+* When using R, user needs to choose 
+    * $p=0$ (Gaussian) 
+
+        `lm` or `glm`
+
+    * $p=1$ (Poisson) 
+
+        `glm(family=poisson)`
+
+    * $1 < p < 2$ (Compound Poisson gamma) 
+
+        `mgcv::gam(family=tw)`
+
+    * $p=2$ (Gamma) 
+
+        `glm(family=Gamma)`
+
+    * $p=3$ (Inverse Gaussian)
+
+        `glm(family=inverse.gaussian`
