@@ -130,7 +130,7 @@ ggplot() +
 modz2 <- zeroinfl(art ~ fem + kid5 + ment | ment, data=bioChemists)
 summary(modz2)
 
-newman <- data.frame(fem="Men",mar="Single",kid5=0,ment=6)
+newman <- tibble(fem="Men",mar="Single",kid5=0,ment=6)
 predict(modz2, newdata=newman, type="prob")
 predict(modz2, newdata=newman, type="zero")
 
