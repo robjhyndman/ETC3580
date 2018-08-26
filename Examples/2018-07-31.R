@@ -25,8 +25,7 @@ summary(best2)
 
 # Diagnostic plots for linear model
 library(broom)
-lmod_aug <- augment(best2) %>%
-  bind_cols(gavote)
+lmod_aug <- augment(best2) 
 
 # Identify influential points 
 lmod_aug %>% 
@@ -55,10 +54,6 @@ best <- lm(Ozone ~ (Solar.R + Wind + Temp + I(Wind^2) + I(Temp^2))^2,
   step(trace=FALSE) 
 summary(best) 
  
-aq_aug <- augment(best) %>% 
-  bind_cols(airquality) 
-# What?
-
 aq_aug <- augment(best) 
 dim(aq_aug) 
 dim(airquality) 
@@ -70,8 +65,7 @@ aq_aug <- augment(best, airquality)
 dim(aq_aug) 
 dim(airquality) 
  
-aq_aug <- augment(best, airquality) %>% 
-  bind_cols(airquality) 
+aq_aug <- augment(best, airquality)
  
 # Check heteroscedasticity 
 aq_aug %>% 

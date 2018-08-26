@@ -70,7 +70,7 @@ visreg2d(best2, 'perAA', 'pergore', plot.type='rgl')
 # Diagnostic plots for linear model
 library(broom)
 lmod_aug <- augment(best2) %>%
-  bind_cols(gavote)
+  bind_cols(select(gavote, atlanta))
 
 # Check heteroscedasticity
 lmod_aug %>%
@@ -79,23 +79,10 @@ lmod_aug %>%
 
 # Check linearity of relationships and homogeneity of groups
 lmod_aug %>%
-  ggplot(aes(x=pergore, y=.resid)) +
-  geom_point() + geom_smooth()
-lmod_aug %>%
-  ggplot(aes(x=perAA, y=.resid)) +
-  geom_point() + geom_smooth()
-lmod_aug %>%
-  ggplot(aes(x=equip, y=.resid)) +
-  geom_boxplot()
-lmod_aug %>%
-  ggplot(aes(x=econ, y=.resid)) +
-  geom_boxplot()
-lmod_aug %>%
-  ggplot(aes(x=usage, y=.resid)) +
-  geom_boxplot()
-lmod_aug %>%
-  ggplot(aes(x=atlanta, y=.resid)) +
-  geom_boxplot()
+  gather(x, val, c("atlanta","econ","equip","perAA","pergore","usage")) %>%
+  ggplot(aes(val, .resid)) +
+    geom_point() +
+    facet_wrap(~x, scales='free')
 
 # Check residual normality
 lmod_aug %>%
