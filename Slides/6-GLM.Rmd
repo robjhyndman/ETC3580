@@ -85,7 +85,7 @@ $$f(y | \theta, \phi) = \exp\left[\frac{y\theta - b(\theta)}{a(\phi)} + c(y,\phi
 \end{itemize}
 \end{block}
 
-\alert{Examples:} Normal, Poisson, Binomial, 
+\alert{Examples:} Normal, Poisson, Binomial,
 \rightline{gamma, inverse Gaussian}
 
 \begin{alertblock}{Moments}
@@ -131,7 +131,7 @@ Normal           & $\mu$               & 1 \\
 Poisson          & $\log \mu$          & $\mu$ \\
 Binomial         & $\log(\mu/(1-\mu))$ & $\mu(1-\mu)$ \\
 Gamma            & $1/\mu$             & $\mu^2$ \\
-Inverse Gaussian & $1/\mu^2$           & $\mu^3$ 
+Inverse Gaussian & $1/\mu^2$           & $\mu^3$
 \end{tabular}
 \end{block}
 
@@ -160,7 +160,7 @@ Inverse Gaussian & $1/\mu^2$           & $\mu^3$
 
 Now
 
-$$\frac{\partial b(\theta)}{\partial \beta_j} = b'(\theta) \frac{\partial \theta}{\partial \beta_j} 
+$$\frac{\partial b(\theta)}{\partial \beta_j} = b'(\theta) \frac{\partial \theta}{\partial \beta_j}
 \qquad\text{and}\qquad
 \frac{\partial \theta}{\partial \beta_j} = \frac{\partial \theta}{\partial \mu}\frac{\partial \mu}{\partial \beta_j} = \frac{1}{b''(\theta)}\frac{\partial \mu}{\partial \beta_j}$$
 
@@ -171,7 +171,7 @@ Therefore
  &= \frac{1}{a(\phi)} \sum_{i=1}^n \left[\frac{ y_i -b'(\theta_i) }{b''(\theta_i)}\right]
  \frac{\partial \mu_i}{\partial \beta_j} \\
  &=  \sum_{i=1}^n \left[\frac{ y_i -\mu_i }{V(\mu_i)}\right]
- \frac{\partial \mu_i}{\partial \beta_j} 
+ \frac{\partial \mu_i}{\partial \beta_j}
 \end{align*}
 
 ## Maximum likelihood estimation
@@ -303,6 +303,51 @@ $$F = \frac{D_\omega - D_\Omega}{\hat{\phi}(\text{df}_\omega - \text{df}_\Omega)
 \hat\phi = \frac{1}{n-p} \sum_{i=1}^n \frac{(y_i-\hat{\mu}_i)^2}{V(\mu_i)}
 $$
 
+# Offsets
+
+## Offsets
+\fontsize{14}{15.5}\sf
+
+\alert{How to deal with fixed constants?}
+
+For Gaussian regression, we adjust the response:
+\begin{block}{}\vspace*{-0.2cm}
+\begin{align*}
+y_i - c_i &\sim N(\bm{\beta}'\bm{x}_i , \sigma^2)\\
+y_i / c_i &\sim N(\bm{\beta}'\bm{x}_i, \sigma^2)
+\end{align*}\end{block}
+
+But this won't work for other sample spaces.\pause
+
+\begin{alertblock}{Solution: Define an offset:}
+\centerline{$g(\mu_i) = c_i + \beta_0 + \beta_1 x_{1,i} + \dots + \beta_q x_{q,i}$}
+where $c$ is fixed and specified (not estimated).
+\end{alertblock}\pause
+
+###
+You can also use an offset when you know the coefficient of a predictor.
+
+## Offsets
+
+\begin{block}{Example: Modelling per-capita counts}
+\centerline{$y_i \sim \text{Poisson}(\exp(\log(z_i) + \bm{\beta}'\bm{x}_i))$}
+\end{block}
+
+  * $y_i$ is \# prisoners in region $i$
+  * $z_i$ is population of region $i$.
+  * $\log(z_i)$ is the "offset".
+  * $\text{E}(y_i/z_i) = \exp(\bm{\beta}'\bm{x}_i)$
+
+\pause
+
+\begin{alertblock}{}
+Most common for Poisson regression, but possible in any GLM.
+\end{alertblock}\pause
+
+```r
+glm(y ~ offset(z) + x1 + x2, family, data)
+```
+
 # GLM Diagnostics
 
 ## GLM Residuals
@@ -394,9 +439,9 @@ $$D_i = \frac{(\hat{\bm\beta}_{(i)} - \hat{\bm\beta})'(\bm{X}'\bm{W}\bm{X})
     - transform predictors
     - add quadratic or other transformed variable
     - use nonparametric regressor (later)
-  
+
   * Distribution:
-  
+
     - allow for overdispersion using quasilikelihood
     - zero-inflated
     - often fixing hetero and linearity will fix distribution
@@ -431,7 +476,7 @@ glm(y ~ x1+x2, family=Gamma(link='log'))
  * Canonical link is inverse. Better to use log.
  * When variance small, it is very similar to Gaussian model with logged response.
  * Inference sensitive to distributional mis-specification
- 
+
 
 ## Inverse Gaussian GLM
 
@@ -475,11 +520,11 @@ $$Y = \sum_{i=1}^N X_i, \qquad N \sim \text{Poisson}, \qquad X_i \sim \text{Gamm
 \end{block}
 
  * Continuous on $[0,\infty]$ with a spike at 0.
-    
+
      (e.g., rainfall, insurance payouts.)
 
  * Tweedie distribution with $1 < p < 2$.
- * Poisson mean: $\mu^{2-p}/[(2-p)\phi]$. 
+ * Poisson mean: $\mu^{2-p}/[(2-p)\phi]$.
  * Gamma parameters: $\nu=(2-p)/(p-1)$, $\lambda=1/[\phi(p-1)\mu^{p-1}]$
 
 \pause
@@ -528,7 +573,7 @@ Show var $= \phi\mu^{p}$
 ## Compound Poisson-gamma GLM
 
 ```r
-mgcv::gam(y ~ x1 + x2, 
+mgcv::gam(y ~ x1 + x2,
            family=tw(link="log"))
 ```
 
@@ -536,21 +581,21 @@ mgcv::gam(y ~ x1 + x2,
 
 ## Tweedie GLMs
 
-* No R function for general Tweedie GLM. 
-* When using R, user needs to choose 
-    * $p=0$ (Gaussian) 
+* No R function for general Tweedie GLM.
+* When using R, user needs to choose
+    * $p=0$ (Gaussian)
 
         `lm` or `glm`
 
-    * $p=1$ (Poisson) 
+    * $p=1$ (Poisson)
 
         `glm(family=poisson)`
 
-    * $1 < p < 2$ (Compound Poisson gamma) 
+    * $1 < p < 2$ (Compound Poisson gamma)
 
         `mgcv::gam(family=tw)`
 
-    * $p=2$ (Gamma) 
+    * $p=2$ (Gamma)
 
         `glm(family=Gamma)`
 
