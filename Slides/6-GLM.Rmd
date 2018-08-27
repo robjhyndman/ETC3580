@@ -97,6 +97,47 @@ $$f(y | \theta, \phi) = \exp\left[\frac{y\theta - b(\theta)}{a(\phi)} + c(y,\phi
 
 \vspace*{10cm}
 
+## Some likelihood theory
+
+Let $Y$ have a distribution with parameter $\theta$\newline
+and let $\ell(\theta)$ denote the likelihood of $Y$.
+
+\begin{block}{}
+\centerline{$\text{E}[\ell'(\theta)] = 0$}
+\end{block}
+
+\begin{block}{}
+\centerline{$\text{E}[\ell''(\theta)] = -\text{E}[(\ell'(\theta))^2]$}
+\end{block}
+
+## Exponential family distributions
+
+\begin{block}{}
+\centerline{$f(y | \theta, \phi) = \exp\left[\frac{y\theta - b(\theta)}{a(\phi)} + c(y,\phi)\right]$}
+\end{block}
+
+Let $\ell(\theta) =$ log-likelihood of single $y$.
+
+\begin{align*}
+\ell(\theta) &= [y\theta - b(\theta)]/a(\phi) + c(y,\phi)\\
+\ell'(\theta) &= [y - b'(\theta)]/a(\phi)\\
+\text{E}[\ell'(\theta)] &= [\E(y) - b'(\theta)]/a(\phi)\\
+\text{E}[\ell'(\theta)] &= 0\\
+\text{So}\qquad \text{E}(y) &= b'(\theta)
+\end{align*}
+
+
+## Exponential family distributions
+
+\begin{align*}
+\ell'(\theta) &= [y - b'(\theta)]/a(\phi)\\
+\ell''(\theta) &= - b''(\theta)/a(\phi)\\
+\E[\ell''(\theta)] &= - b''(\theta)/a(\phi)\\
+\E[(\ell'(\theta))^2] &= \E[(y - b'(\theta))^2]/a^2(\phi)\\
+\text{So}\qquad - b''(\theta)/a(\phi) & -\E[(y - b'(\theta))^2]/a^2(\phi)\\
+\text{and}\qquad \text{Var}(y) &= b''(\theta)a(\phi)
+\end{align*}
+
 # Generalized Linear Models
 
 ## Generalized Linear Models
@@ -118,7 +159,7 @@ A GLM consists of three components:
 
  * $g$ must be monotone, continuous and differentiable.
  * $g$ must map the space of $\mu$ to $\mathbb{R}$.
- * Canonical link has $g(\mu)=\theta$.
+ * Canonical link has $g(\mu)=\theta$, so that $g(b'(\theta))=\theta$.
 
 
 ## Link functions
@@ -136,7 +177,7 @@ Inverse Gaussian & $1/\mu^2$           & $\mu^3$
 \end{block}
 
  * Canonicial link means $\bm{X}'\bm{y}$ is \emph{sufficient}.
- * Makes estimation easy and inference exact.
+ * Also makes estimation easier.
 
 ## Log Likelihood
 
