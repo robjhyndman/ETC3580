@@ -43,7 +43,7 @@ ggplot(NMES1988, aes(x=school, y=visits)) +
 mod1 <- glm(visits ~ hospital + health + chronic + gender + school + insurance,
             family=poisson, data=NMES1988)
 summary(mod1)
-1-pchisq(deviance(mod1), df.residual(mod1))
+pchisq(deviance(mod1), df.residual(mod1), lower.tail=FALSE)
 
 mod2 <- glm(visits ~ hospital + health + chronic + gender + school + insurance,
             family=quasipoisson, data=NMES1988)
@@ -57,7 +57,7 @@ augment(mod2) %>%
 mod3 <- MASS::glm.nb(visits ~ hospital + health + chronic + gender + school + insurance,
             data=NMES1988)
 summary(mod3)
-1-pchisq(deviance(mod3), df.residual(mod3))
+pchisq(deviance(mod3), df.residual(mod3), lower.tail=FALSE)
 drop1(mod3, test="Chisq")
 visreg(mod3)
 augment(mod3) %>%
@@ -97,8 +97,6 @@ AIC(mod5)
 AIC(mod6)
 AIC(mod7)
 
-
-
 ## Zero-inflated Poisson models
 
 library(pscl)
@@ -108,12 +106,23 @@ summary(bioChemists)
 
 modp <- glm(art ~ fem + mar + kid5 + phd + ment, data=bioChemists, family=poisson)
 summary(modp)
-1-pchisq(deviance(modp), df.residual(modp))
+pchisq(deviance(modp), df.residual(modp), lower.tail=FALSE)
 # Does not fit well
 
-bioChemists %>% count(art)
-ocount <- bioChemists %>% count(art) %>% select(n) %>% as_vector()
-pcount <- colSums(predprob(modp)[,1:15])
+# Observed counts
+ocount <- count(bioChemists, art)
+# Add in zeros for unobserved counts
+ocount <- ocount %>%
+  bind_rows(
+    tibble(
+      art = (0:20)[-match(ocount$art, (0:20))],
+      n = rep(0, 21-NROW(ocount))
+    )
+  ) %>%
+  arrange(art) %>%
+  select(n) %>%
+  as_vector()
+pcount <- colSums(predprob(modp, at=0:20))
 ocount - pcount
 ## Looks like too many zeros
 
