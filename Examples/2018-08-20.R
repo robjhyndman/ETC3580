@@ -41,7 +41,7 @@ modp2 <- glm(Species ~ sqrt(Area) + sqrt(Elevation) + sqrt(Nearest) +
 visreg(modp2)
 summary(modp2)
 ## Note residual deviance is huge compared to df. (Should be about the same)
-1-pchisq(deviance(modp2), df.residual(modp2))
+pchisq(deviance(modp2), df.residual(modp2), lower.tail=FALSE)
 
 ## Let's try a dispersed Poisson model
 modd <- glm(Species ~ sqrt(Area) + sqrt(Elevation) + sqrt(Nearest) +
@@ -62,7 +62,7 @@ modnb <- MASS::glm.nb(Species ~ sqrt(Area) + sqrt(Elevation) + sqrt(Nearest) +
              sqrt(Scruz) + sqrt(Adjacent),
            gala)
 summary(modnb)
-1-pchisq(deviance(modnb), df.residual(modnb))
+pchisq(deviance(modnb), df.residual(modnb), lower.tail=FALSE)
 drop1(modnb, test="Chisq")
 
 visreg(modnb)
