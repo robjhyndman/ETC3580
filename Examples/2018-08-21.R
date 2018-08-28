@@ -109,21 +109,15 @@ summary(modp)
 pchisq(deviance(modp), df.residual(modp), lower.tail=FALSE)
 # Does not fit well
 
-# Observed counts
-ocount <- count(bioChemists, art)
-# Add in zeros for unobserved counts
-ocount <- ocount %>%
-  bind_rows(
-    tibble(
-      art = (0:20)[-match(ocount$art, (0:20))],
-      n = rep(0, 21-NROW(ocount))
-    )
-  ) %>%
-  arrange(art) %>%
-  select(n) %>%
-  as_vector()
-pcount <- colSums(predprob(modp, at=0:20))
-ocount - pcount
+# Observed vs predicted counts
+bioChemists %>% 
+  count(art) %>% 
+  complete(art = 0:19, fill = list(n=0)) %>% 
+  mutate(
+    pred = colSums(predprob(modp)),
+    e = n - pred
+  )
+
 ## Looks like too many zeros
 
 modh <- hurdle(art ~ fem + mar + kid5 + phd + ment, data=bioChemists)
