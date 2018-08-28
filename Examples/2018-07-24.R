@@ -32,7 +32,6 @@ visreg(lmod)
 visreg(lmod, "pergore", gg=TRUE) + theme_bw()
 visreg(lmod, "perAA", gg=TRUE) + theme_bw()
 
-
 # Interactions
 # Can we spot interaction of perAA and equip in data?
 gavote %>%
@@ -56,7 +55,6 @@ anova(lmod,lmod2)
 confint(lmod)
 
 confint(lmod2)
-
 
 ###############################################
 ## airquality example with polynomials

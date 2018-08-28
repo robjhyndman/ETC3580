@@ -106,7 +106,6 @@ wcgs_aug %>%
   filter(.hat > 0.3) %>%
   glimpse()
 
-
 ## Who supports Pinochet?
 
 chile <- 
@@ -132,5 +131,4 @@ fit2 <- glm(vp ~ region + sex + age + education + income,
             family=binomial(link=probit), data=chile)
 summary(fit2)
 anova(fit,fit2, test="Chisq")
-
 

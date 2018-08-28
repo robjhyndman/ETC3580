@@ -26,7 +26,6 @@ summary(mammalsleep)
 mammalsleep <- na.omit(mammalsleep)
 summary(mammalsleep)
 
-
 ## Method 1: logitNormal
 # Compute empirical logits
 # First check for zero proportions
@@ -106,7 +105,6 @@ aug2 %>%
   ggplot(aes(x=.hat,y=.cooksd)) + geom_point()
 aug2 %>% 
   ggplot(aes(x=.resid)) + geom_dotplot()
-
 
 ## Method 3: beta regression
 

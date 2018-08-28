@@ -23,7 +23,6 @@ gl <- glm(
   family=Gamma(link=log), motori)
 summary(gl)
 
-
 # Tweedie model
 help(chredlin)
 as_tibble(chredlin)
