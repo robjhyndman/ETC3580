@@ -1,0 +1,225 @@
+---
+title: "ETC3580: Advanced Statistical Modelling"
+author: "Week 7: Random effects"
+fontsize: 14pt
+output:
+  beamer_presentation:
+    theme: metropolis
+    fig_height: 4.5
+    fig_width: 7
+    highlight: tango
+    includes:
+      in_header: header.tex
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, cache=TRUE, warning=FALSE, message=FALSE,
+  dev.args=list(bg=grey(0.9), pointsize=11))
+library(faraway)
+library(tidyverse)
+```
+
+
+# Random effects
+
+## Grouped data
+
+Data come in groups, rather than iid:
+
+ * Survey of students, within classes, within schools
+ * Data on regions within states within countries
+ * Measurements on people over time
+ * Measuring different drugs on same people
+
+
+###
+Correlations between observations within the same group, so independence assumption inappropriate
+
+## Fixed and random effects
+
+\alert{Fixed effect:}
+
+ * coefficients we estimate from the data
+ * levels of categorical variable are non-random
+ * Parameters in LM and GLMs are fixed effects
+
+\alert{Random effect:}
+
+ * random variable within model
+ * levels of categorical variable drawn from random distribution
+ * estimate parameters of distribution of effect
+ * used to handle grouped data
+
+## Example: Estimating income by postcode
+
+\begin{block}{}
+Data set consists of household incomes and postcodes.
+
+Some postcodes have many observations, some only a couple of households.
+\end{block}\pause
+
+\alert{Approach 1:} take mean of each postcode.
+
+ * Fails with poorly sampled postcodes.
+
+\alert{Approach 2:} treat postcode as a random effect
+
+ * Shrinks individual estimates towards global mean
+ * Handles poorly sampled postcodes
+ * Closely related to hierarchical Bayesian modelling
+
+## Random effects are useful when \dots
+\fontsize{14}{14}\sf
+
+ * Lots of levels of a factor (categorical predictor)
+ * Relatively little data on some levels
+ * Uneven sampling across levels
+ * Not all levels sampled
+
+\pause
+
+\alert{Are these fixed or random?}
+
+ * gender
+ * postcodes
+ * units (in student evaluation surveys)
+ * race
+
+\pause
+
+###
+Somewhat controversial. Some authors say always use random effects.
+
+## Induced correlation
+
+Suppose we have one random effect:
+$$y_{ij} = \mu + \alpha_i + \varepsilon_{ij}$$
+where $i=1,\dots,a$ and $j=1,\dots,n$,
+
+$\alpha \sim N(0,\sigma^2_\alpha)$ and $\varepsilon \sim N(0,\sigma^2_\varepsilon)$.
+
+\pause
+
+### Intra-class correlation
+$$\text{Corr}(y_{ij},y_{ik}) = \frac{\sigma_\alpha^2}{\sigma_\alpha^2+\sigma_\varepsilon^2}$$
+
+## General model
+
+### Error form:
+$$\bm{y} = \bm{X}\bm{\beta} + \bm{Z}\bm{\gamma} + \bm{\varepsilon}$$
+where $\bm{\varepsilon} \sim N(\bm{0}, \sigma^2\bm{I})$ and
+$\bm{\gamma} \sim N(\bm{0}, \sigma^2\bm{D})$.\pause
+
+### Conditional distribution form:
+$$\bm{y} | \bm{\gamma} \sim N(\bm{X}\bm{\beta} + \bm{Z}\bm{\gamma}, \sigma^2\bm{I})$$
+where $\bm{\gamma} \sim N(\bm{0}, \sigma^2\bm{D})$.\pause
+
+### Unconditional distribution form:
+$$\bm{y} \sim N(\bm{X}\bm{\beta}, \sigma^2(\bm{I}+\bm{Z}\bm{D}\bm{Z}'))$$
+
+## Model specification
+
+\begin{tabular}{lp{5.5cm}}
+\bfseries Formula & \bfseries Meaning \\
+\midrule
+ \texttt{(1 | g)}             & Random intercept with fixed mean         \\
+ \texttt{(1 | g1) + (1 | g2)} & Random intercepts for both \texttt{g1} and \texttt{g2} \\
+ \texttt{x + (x | g)}         & Correlated random intercept and slope    \\
+ \texttt{x + (x || g)}        & Uncorrelated random intercept and slope
+\end{tabular}
+
+# Estimation
+
+## Maximum likelihood estimation
+\fontsize{13}{14}\sf
+
+Let $\bm{V}=\bm{I}+\bm{Z}\bm{D}\bm{Z}'$. Then
+\begin{block}{}
+$$
+  L = \frac{1}{(2\pi)^{n/2}|\sigma^2\bm{V}|^{1/2}}
+   \exp\left\{
+     -\frac{1}{2\sigma^2}(\bm{y}-\bm{X}\bm{\beta})'\bm{V}^{-1}(\bm{y}-\bm{X}\bm{\beta})'
+   \right\}
+$$
+\end{block}\pause
+So
+\begin{block}{}
+$$\textstyle
+  \log L = -\frac{n}{2}\log(2\pi) - \frac{1}{2}\log |\sigma^2\bm{V}|
+     -\frac{1}{2\sigma^2}(\bm{y}-\bm{X}\bm{\beta})'\bm{V}^{-1}(\bm{y}-\bm{X}\bm{\beta})'
+$$
+\end{block}\pause
+
+Optimize to find $\bm{\beta}$, $\sigma^2$ and $\bm{D}$.\pause\vspace*{0.3cm}
+
+\alert{Problems:}
+
+ * biased parameters on boundaries
+ * non-zero derivatives at boundaries
+
+## Restricted Maximum Likelihood (REML)
+
+ * Designed to avoid MLE problems
+ * Find all independent linear combinations $\bm{k}$ of the response such that $\bm{k}'\bm{X}=0$.
+ * Form matrix $\bm{K}$ with columns $\bm{k}$:
+ $$ \bm{K}'\bm{y} \sim N(\bm{0}, \sigma^2\bm{K}'\bm{V}\bm{K})$$
+ * Maximize likelihood of $\bm{K}'\bm{y}$ (only $\bm{D}$ and $\sigma$), then find $\bm{\beta}$.
+ * Less biased
+ * Implemented in `lme4::lmer()`
+
+## Estimates of random effects
+
+\begin{block}{}
+$$\bm{y} | \bm{\gamma} \sim N(\bm{X}\bm{\beta} + \bm{Z}\bm{\gamma}, \sigma^2\bm{I})$$
+where $\bm{\gamma} \sim N(\bm{0}, \sigma^2\bm{D})$.\pause
+\end{block}
+
+ * $\bm{\gamma}$ is not estimated because it is random. But we might want to know something about the expected values.
+
+$$\E(\bm{\gamma} |\bm{y}) = \bm{D}\bm{Z}'\bm{V}^{-1}(\bm{y}-\bm{X}\bm{\beta})$$
+
+* Use `ranef(fit)`
+
+
+
+# Diagnostics
+
+## Residuals
+\fontsize{14}{16}\sf
+
+ * More than one kind of fitted value, so more than one kind of residual.
+ * Default is to estimate $\varepsilon$ which is most useful for model diagnostics.
+ * `plot` will plot residuals vs fitted values (good for spotting heteroskedasticity)
+ * Plotting residuals vs predictors helps in spotting nonlinearity as usual.
+ * qqnorm on residuals for normality check of residuals
+ * qqnorm on random effects for normality check on random effects
+
+
+
+# Inference
+
+## Likelihood ratio tests
+\fontsize{14}{16}\sf
+
+* If you compare two nested models that differ only in their fixed effects, you cannot use REML. You must use MLE despite its problems.
+* Assuming you use MLE, the $\chi^2$ approximation can be seriously wrong.
+* You can't test hypotheses of the form $H_0: \sigma_\alpha^2=0$.
+* $p$-values on fixed effects are too small, $p$-values on random effects are too large.
+* `lme4` will not give you p-values
+* The only reasonable approach at this stage is to use a **parametric bootstrap** or reframe as a Bayesian problem.
+
+## Bootstrap
+
+1. Fit full model and null model to the data
+2. Compute test statistic
+3. Simulate pseudo-data from the null model
+4. Fit both models to the pseudo-data and compute the test statistic.
+5. Repeat steps 2--3 a large number of times.
+6. Find proportion of times simulated test statistics are greater than actual test statistic.
+
+## Model selection
+
+ * AIC can be used provided we only compare models which differ on fixed effects, and we use full MLE (not REML)
+ * Comparing models with different random effects is hard due to no defined degrees of freedom.
+ * Probably best to go Bayesian.
+
