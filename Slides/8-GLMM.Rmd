@@ -1,0 +1,78 @@
+---
+title: "ETC3580: Advanced Statistical Modelling"
+author: "Week 8: Mixed Effect Models for non-Gaussian Responses"
+fontsize: 14pt
+output:
+  beamer_presentation:
+    theme: metropolis
+    fig_height: 4.5
+    fig_width: 7
+    highlight: tango
+    includes:
+      in_header: header.tex
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, cache=TRUE, warning=FALSE, message=FALSE,
+  dev.args=list(bg=grey(0.9), pointsize=11))
+library(faraway)
+library(tidyverse)
+```
+
+
+## Generalized Linear Mixed Models
+
+ * Combine GLMs with random effects
+ * $y_i$ from exponential family distribution $f(y_i, \theta_i, \phi)$
+ * $\E(y_i) = \mu_i$
+ * Link function $g$: $g(\mu_i) = \bm{x}_i' \bm{\beta} + \bm{z}_i' \bm{\gamma}$
+ * $\bm{\beta}$ are fixed effects; $\bm{\gamma}$ are random effects.
+ * $\bm{\gamma} \sim N(\bm{0},\bm{D})$ with density $h(\bm{\gamma}|\bm{D})$
+\pause
+
+### Likelihood
+$$L(\bm{\beta},\phi,\bm{D}) = \prod_{i=1}^n \int f(y_i | \bm{\beta},\phi,\bm{\gamma}) h(\bm{\gamma}|\bm{D})$$
+
+   * Can only solve integrals if $f$ and $h$ both normal
+
+
+## Numerical integration of likelihood
+
+\begin{block}{Likelihood}
+$$L(\bm{\beta},\phi,\bm{D}) = \prod_{i=1}^n \int f(y_i | \bm{\beta},\phi,\bm{\gamma}) h(\bm{\gamma}|\bm{D})$$
+\end{block}
+
+ * Use numerical integration to approximate integrals
+ * More accurate than PQL
+ * Can be slow or impossible for complex models
+ * Inference will be problematic, as for MLE with LMMs
+
+## Penalized Quasi Likelihood
+\fontsize{13}{14}\sf
+
+1. Transform fitted values:
+$$\eta_i = g(\mu_i) = \bm{x}_i'\bm{\beta} + \bm{z}_i'\bm{\gamma}$$
+
+2. Create pseudo-responses:
+$$\tilde{y}^j_i = \hat{\eta}^j_i + (y_i - \hat{\mu}_i^j)\left. \frac{d\eta}{d \mu} \right|_{\hat{\eta}_i^j}$$
+where $j$ is iteration in optimization algorithm
+
+3. Find $\V(\tilde{y}_i | \bm{\gamma})$
+
+4. Use weighted linear mixed effects models
+
+\pause\vspace*{0.3cm}
+
+###
+ * fast
+ * approximate inference
+ * biased estimates, esp.\ for binary data or low counts
+ * even worse inference than regular LMM
+
+## Bayesian methods
+
+ * Much more accurate inference
+ * Allow for prior information and flexibility
+ * Usually take more computation
+ * Inferential form different
+ * Require additional software (either INLA or STAN).
