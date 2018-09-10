@@ -37,6 +37,7 @@ anova(all3, all2, notrs, notrg, notsg, onlyrs, all1, nogen)[,1:4]
 
 # AIC suggests best model is onlyyrs:
 summary(onlyrs)
+visreg(onlyrs)
 
 # Model diagnostics
 augment(onlyrs) %>%
@@ -61,14 +62,15 @@ school_rating <- ranef(mmod) %>%
   filter(grpvar=="school") %>%
   select(condval) %>%
   rename(adjscores = condval)
+school_rating
 
 # Compute ranking without adjustment:
-
 school_rating <- school_rating %>%
   bind_cols(rawscores = coefficients(lm(math ~ school-1, data=jspr))) %>%
   mutate(rawscores = scale(rawscores),
          adjscores = scale(adjscores),
          school = seq(length(rawscores)))
+school_rating
 
 school_rating  %>%
   ggplot(aes(x=rawscores, y=adjscores, label=school)) +
@@ -134,7 +136,6 @@ psid %>%
 lmod <- lm(log(income) ~ I(year-78), subset=(person==1), 
            psid)
 coef(lmod)
-library(broom)
 tidy(lmod)
 
 # Fit LM for all people separately:
@@ -185,10 +186,18 @@ ggplot(ml) +
   geom_point(aes(x=intercept, y=slope, color=as.factor(age)))
 
 # Now do random effects model with other predictors
-# Centre year
-psid <- mutate(psid, cyear = year-78)
-mmod <- lmer(log(income) ~ cyear*sex +age+educ+(cyear|person),psid)
+mmod <- lmer(
+  log(income) ~ year*sex + age + educ + (year|person),
+  data=psid)
 summary(mmod)
+# Numerical issues. Centre year.
+
+psid <- mutate(psid, cyear = year-78)
+mmod <- lmer(
+  log(income) ~ cyear*sex + age + educ + (cyear|person),
+  data=psid)
+summary(mmod)
+visreg(mmod)
 
 # Write out model
 
@@ -197,8 +206,14 @@ summary(mmod)
 # Male income increases about 8.5-2.6=5.9% per year
 
 confint(mmod, method="boot")
-
 # Age not significant
+
+# Diagnostic plots
+augment(mmod) %>%
+  ggplot(aes(x=.fitted,y=.resid)) +
+  geom_point(, alpha=0.3) + 
+  geom_hline(yintercept=0) + 
+  xlab("Fitted") + ylab("Residuals")
 
 augment(mmod) %>%
   ggplot(aes(sample=.resid)) +
@@ -207,21 +222,6 @@ augment(mmod) %>%
 # Long tail for lower incomes and greater variance for females
 # Probably don't want a log then -- maybe try other transformations?
 # Better still, we will use a nonparametric function of income (later)
-
-# Diagnostic plots
-# Split by education level
-augment(mmod) %>%
-  mutate(edulevel = cut(psid$educ, 
-                        c(0,8.5,12.5,20), 
-                        labels=c("lessHS","HS","moreHS"))) %>%
-  ggplot(aes(x=.fitted,y=.resid)) +
-    geom_point(, alpha=0.3) + 
-    geom_hline(yintercept=0) + 
-    facet_grid(~ edulevel) + 
-    xlab("Fitted") + ylab("Residuals")
-# Different transformation required
-
-
 
 
 ## Binary response
@@ -281,19 +281,17 @@ summary(gfs)
 # Not all effects estimate. Other estimates effectively infinite!
 
 ## Do it pseudo-properly with random subject effects
-library(MASS)
-modpql <- glmmPQL(stable ~ Sex + Age + Height + Weight + Surface + Vision,
+modpql <- MASS::glmmPQL(stable ~ Sex + Age + Height + Weight + Surface + Vision,
                   random=~1|Subject,  family=binomial, data=ctsib)
 summary(modpql)
 ## Interpretation of subject effect:
 # exp(3.06) = 21.3. So a 1SD change in subject effect increases
-# odds of stability are multiplied by 21.3x.
+# odds of stability by 21.3x.
 # Residual SD is meaningless.
 # Surface=norm and Vision=open have strongest positive effects on stability
 
 ## Re-fit with numerical integration of likelihood
 ## using lme4::glmer
-library(lme4)
 modlap <- glmer(stable ~ Sex + Age + Height + Weight + Surface +  Vision +
                   (1|Subject), family=binomial, data=ctsib)
 ##Hmm. Nasty warnings!
@@ -308,15 +306,16 @@ summary(modgh)
 modgh2 <- glmer(stable ~ Surface +  Vision + (1|Subject),
                 nAGQ=25, family=binomial, data=ctsib)
 summary(modgh2)
+visreg(modgh2)
 
 anova(modgh, modgh2)
 
 # Chisq test suggests subject-specific variables not required.
 # But be skeptical as the asymptotics could be dodgy here.
 
-dd <- fortify(modgh2)
-ggplot(dd) +
-  geom_qq(aes(sample=.resid)) +
+augment(modgh2) %>%
+  ggplot(aes(sample=.resid)) +
+  geom_qq() +
   facet_grid(Surface~Vision)
 
 ## Fitting problems showing up as residuals for two combinations
@@ -407,8 +406,7 @@ summary(modglm)
 # But p-values too small due to ignoring subject effects
 
 # Now try a GLMM
-library(MASS)
-modpql <- glmmPQL(seizures ~ offset(log(timeadj)) + 
+modpql <- MASS::glmmPQL(seizures ~ offset(log(timeadj)) + 
                     drug * phase,
                     random = ~1|id, 
                   family=poisson, data=epilo)
@@ -417,7 +415,6 @@ summary(modpql)
 # interaction is still significant. Other effects not significant
 # Looks like the drug is doing something useful
 
-library(lme4)
 modgh <- glmer(seizures ~ offset(log(timeadj)) + 
                  drug * phase + (1|id),
                nAGQ=25, family=poisson, data=epilo)
