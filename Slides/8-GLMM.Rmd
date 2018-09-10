@@ -19,6 +19,81 @@ library(faraway)
 library(tidyverse)
 ```
 
+# Hierarchical Linear Models
+
+## Nested effects
+
+\begin{block}{}
+Levels of one factor vary only within levels of another factor
+\end{block}
+
+  * Workers within job locations
+  * Units within campus
+
+Be careful: nested levels with the same labels are not the same thing.
+
+## Crossed effects
+
+ * Any non-nested effects are "crossed".
+ * That is, every level of one factor can potentially interact with every level of another factor.
+ * Incomplete crossing occurs when not all combinations of factors exist in the data.
+
+## Multilevel models
+
+ * Models with nested (hierarchical) structure.
+ * Commonly used in psychology, education, and other social sciences where survey data is naturally clustered hierarchically.
+
+### Junior School Project (1988)
+
+**Variables**: `student`, `class`, `school`, `gender`, `social`, `raven`, `math`, `english`, `year`
+
+**Nesting**: `school:class:student`
+
+Other variables crossed.
+
+# Longitudinal data
+
+## Longitudinal data
+\fontsize{14}{15}\sf
+
+ * Repeated measurements on each unit taken over time.
+ * Called "panel data" in econometrics. Called "longitudinal data" in every other discipline.
+ * Individuals treated as random effects
+ * Additional complexity of autocorrelation to address
+ * Differs from time series in having many units (e.g., people) but often not many observations per person.
+ * i.e., Longitudinal data has large $N$, small $T$; Time series data has small $N$, large $T$.
+
+## Longitudinal data
+
+For unit (individual) $i$, $\bm{y}_i$ is a $T$-vector such that
+$$\bm{y}_i | \gamma_i \sim N(\bm{X}_i\bm{\beta} + \gamma_i, \sigma^2\bm{\Lambda}_i)$$
+
+ * $\gamma_i \sim N(0,\sigma^2D)$ is effect of $i$th unit
+ * $\bm{X}_i$ contains predictors for fixed effects
+ * $\bm\Lambda_i$ handles autocorrelations within units
+ * $\bm{y}_i \sim N(\bm{X}_i\bm{\beta}, \bm{\Sigma}_i)$ where $\bm{\Sigma}_i = \sigma^2(\bm{\Lambda}_i + \bm{D})$
+ * Assume individuals are independent, and random effects and errors are uncorrelated.
+
+## Longitudinal data
+
+Combining individuals (assuming independence):
+ \begin{align*}
+     \bm{y}      & = \begin{bmatrix}
+                       \bm{y}_1 \\ \vdots \\ \bm{y}_N
+                      \end{bmatrix} \qquad
+     \bm{X}       = \begin{bmatrix}
+                       \bm{X}_1 \\ \vdots \\ \bm{X}_N
+                       \end{bmatrix} \\
+  \bm{\Sigma} &= \text{diag}(\bm{\Sigma}_1,\bm{\Sigma}_2,\dots,\bm{\Sigma}_N),   \\
+\bm{y} &\sim N(\bm{X}\bm{\beta}, \bm{\Sigma})
+\end{align*}
+
+\pause
+
+* Only additional complication is choosing correlation structure
+* Other random effects can be added; then $\gamma_i$ becomes a vector.
+
+# Generalized Linear Mixed Models
 
 ## Generalized Linear Mixed Models
 
