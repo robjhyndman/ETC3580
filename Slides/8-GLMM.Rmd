@@ -1,6 +1,6 @@
 ---
 title: "ETC3580: Advanced Statistical Modelling"
-author: "Week 8: Mixed Effect Models for non-Gaussian Responses"
+author: "Week 8: Hierarchical, longitudinal and non-Gaussian mixed effect models"
 fontsize: 14pt
 output:
   beamer_presentation:
