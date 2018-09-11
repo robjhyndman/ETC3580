@@ -1,0 +1,993 @@
+---
+title: "ETC3580: Advanced Statistical Modelling"
+author: "Week 10: Nonparametric inference"
+fontsize: 14pt
+output:
+  beamer_presentation:
+    theme: metropolis
+    fig_height: 4.5
+    fig_width: 7
+    highlight: tango
+    includes:
+      in_header: header.tex
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, cache=TRUE, warning=FALSE, message=FALSE,
+  dev.args=list(bg=grey(0.9), pointsize=11))
+library(faraway)
+library(tidyverse)
+library(KernSmooth)
+library(splines)
+set.seed(1)
+```
+
+# General kernel form of linear smoothers
+
+## General kernel form of linear smoothers
+
+\begin{block}{Linear smoother}
+$$\hat{f}(x) = \sum_{j=1}^n w_j(x) y_j$$
+\end{block}
+
+ * Nadaraya-Watson smoothing:
+$$w_j(x) = \frac{K\left(\frac{x-x_j}{h}\right)}{\displaystyle\sum_{i=1}^n \textstyle K\left(\frac{x-x_i}{h}\right)}$$
+
+ * Almost all smoothing methods can be written in this form for different functions $w_j(x)$
+
+
+## Example
+
+```{r}
+eg <- tibble(
+  x=seq(1.5,5,by=0.01),
+  y=exp(x)/5 + 12*sin(x) + rnorm(length(x)))
+ggplot(eg) +
+  geom_point(aes(x=x,y=y)) +
+  geom_line(aes(x=x,y=exp(x)/5+12*sin(x)),col='darkgreen')
+h <- 0.25
+fit <- locpoly(eg$x, eg$y, degree=0, bandwidth=h) %>% as.tibble
+u0 <- c(1.5,2.5,4,5)
+df <- tibble(x = rep(eg$x,length(u0)),
+             u = rep(u0,rep(NROW(eg),length(u0)))) %>%
+      mutate(
+        K = dnorm(x-u)/h,
+        label = paste("x =",u)
+      )
+```
+
+## Kernel estimator
+
+```{r, fig.height=4, fig.width=8}
+i <- 1
+ggplot(eg) +
+  geom_vline(xintercept=u0[i], col='red') +
+  geom_point(aes(x=x,y=y)) +
+  geom_line(data=fit, aes(x=x,y=y), col='blue')
+```
+
+```{r, fig.height=1.9, fig.width=8}
+j <- df$u==u0[i]
+df$K[j] <- df$K[j]/sum(df$K[j])
+df %>% filter(u==u0[i]) %>%
+  ggplot() +
+    geom_hline(yintercept=0, col='gray') +
+    geom_vline(xintercept=u0[i], col='red') +
+    geom_line(aes(x=x, y=K)) +
+    ylab(expression(w[j](x))) +
+    theme(axis.title.y=element_text(margin = margin(r = 5))) +
+    scale_y_continuous(breaks=0)
+```
+
+## Kernel estimator
+
+```{r, fig.height=4, fig.width=8}
+i <- 2
+ggplot(eg) +
+  geom_vline(xintercept=u0[i], col='red') +
+  geom_point(aes(x=x,y=y)) +
+  geom_line(data=fit, aes(x=x,y=y), col='blue')
+```
+
+```{r, fig.height=1.9, fig.width=8}
+j <- df$u==u0[i]
+df$K[j] <- df$K[j]/sum(df$K[j])
+df %>% filter(u==u0[i]) %>%
+  ggplot() +
+    geom_hline(yintercept=0, col='gray') +
+    geom_vline(xintercept=u0[i], col='red') +
+    geom_line(aes(x=x, y=K)) +
+    ylab(expression(w[j](x))) +
+    theme(axis.title.y=element_text(margin = margin(r=5))) +
+    scale_y_continuous(breaks=0)
+```
+
+## Kernel estimator
+
+```{r, fig.height=4, fig.width=8}
+i <- 3
+ggplot(eg) +
+  geom_vline(xintercept=u0[i], col='red') +
+  geom_point(aes(x=x,y=y)) +
+  geom_line(data=fit, aes(x=x,y=y), col='blue')
+```
+
+```{r, fig.height=1.9, fig.width=8}
+j <- df$u==u0[i]
+df$K[j] <- df$K[j]/sum(df$K[j])
+df %>% filter(u==u0[i]) %>%
+  ggplot() +
+    geom_vline(xintercept=u0[i], col='red') +
+    geom_hline(yintercept=0, col='gray') +
+    geom_line(aes(x=x, y=K)) +
+    ylab(expression(w[j](x))) +
+    theme(axis.title.y=element_text(margin = margin(r=5))) +
+    scale_y_continuous(breaks=0)
+```
+
+## Kernel estimator
+
+```{r, fig.height=4, fig.width=8}
+i <- 4
+ggplot(eg) +
+  geom_vline(xintercept=u0[i], col='red') +
+  geom_point(aes(x=x,y=y)) +
+  geom_line(data=fit, aes(x=x,y=y), col='blue')
+```
+
+```{r, fig.height=1.9, fig.width=8}
+j <- df$u==u0[i]
+df$K[j] <- df$K[j]/sum(df$K[j])
+df %>% filter(u==u0[i]) %>%
+  ggplot() +
+    geom_hline(yintercept=0, col='gray') +
+    geom_vline(xintercept=u0[i], col='red') +
+    geom_line(aes(x=x, y=K)) +
+    ylab(expression(w[j](x))) +
+    theme(axis.title.y=element_text(margin = margin(r=5))) +
+    scale_y_continuous(breaks=0)
+```
+
+
+
+## Local polynomial estimator
+
+Assume
+$$f(u) =
+{a}_0 + {a}_1(u-x) + \cdots + {a}_p(u-x)^p.$$
+Then the coefficients, $\hat{a}_i$, are the values of $a_i$ which
+minimise
+$$\text{WLS}(x) = \sum_{j=1}^n w_j(x)\bigl(y_j - a_0 - a_1(x_j-x) - \cdots -
+a_p(x_j-x)^p\bigr)^2$$
+and $\hat{f}(x) = \hat{a}_0$.
+In matrix notation we can write
+$$\text{WLS}(x) = (\bm{Y}-X\bm{a})'W(x)(\bm{Y}-X\bm{a})$$
+where $[X]_{ji} = (x_j-x)^i$ and $W(x)$ is the diagonal matrix with elements
+$w_j(x)$.
+
+
+## Local polynomial estimator
+
+The minimizer of this function is
+$$\hat{\bm a} =
+(X'W(x)X)^{-1}X'W(x)\bm{Y}.$$
+Therefore,
+$$\hat{f}(x) = [1,0,\dots,0](X'W(x)X)^{-1}X'W(x)\bm{Y} = \sum_{j=1}^n
+l_j(x)y_j$$
+where
+$$l_j(x) =
+[1,0,\dots,0](X'W(x)X)^{-1}[1,(x_j-x),\dots,(x_j-x)^p]w_j(x)$$
+So a local polynomial is equivalent to a kernel smoother but with an unusual
+weight function.  We call the weights $l_j(x)$ the *effective kernel* at
+$x$. If $p=0$, then $l_j(x)=w_j(x)$.
+
+## Local linear estimator
+
+```{r}
+fit <- locpoly(eg$x, eg$y, degree=1, bandwidth=h) %>% as.tibble
+df$w <- df$K
+```
+
+```{r, fig.height=4, fig.width=8}
+i <- 1
+ggplot(eg) +
+  geom_vline(xintercept=u0[i], col='red') +
+  geom_point(aes(x=x,y=y)) +
+  geom_line(data=fit, aes(x=x,y=y), col='blue')
+```
+
+```{r, fig.height=1.9, fig.width=8}
+X <- cbind(rep(1,NROW(eg)), eg$x - u0[i])
+W <- diag(df$K[1:NROW(eg) + (i-1)*NROW(eg)])
+Z <- solve(t(X) %*% W %*% X) %*% t(X) %*% W
+df$w[1:NROW(eg) + (i-1)*NROW(eg)] <- Z[1,]
+df %>% filter(u==u0[i]) %>%
+  ggplot() +
+    geom_vline(xintercept=u0[i], col='red') +
+    geom_hline(yintercept=0, col='gray') +
+    geom_line(aes(x=x, y=K), col='pink') +
+    geom_line(aes(x=x, y=w)) +
+    ylab(expression(w[j](x))) +
+    theme(axis.title.y=element_text(margin = margin(r=5))) +
+    scale_y_continuous(breaks=0)
+```
+
+
+## Local linear estimator
+
+```{r, fig.height=4, fig.width=8}
+i <- 2
+ggplot(eg) +
+  geom_point(aes(x=x,y=y)) +
+  geom_line(data=fit, aes(x=x,y=y), col='blue') +
+  geom_vline(xintercept=u0[i], col='red')
+```
+
+```{r, fig.height=1.9, fig.width=8}
+X <- cbind(rep(1,NROW(eg)), eg$x - u0[i])
+W <- diag(df$K[1:NROW(eg) + (i-1)*NROW(eg)])
+Z <- solve(t(X) %*% W %*% X) %*% t(X) %*% W
+df$w[1:NROW(eg) + (i-1)*NROW(eg)] <- Z[1,]
+df %>% filter(u==u0[i]) %>%
+  ggplot() +
+    geom_vline(xintercept=u0[i], col='red') +
+    geom_hline(yintercept=0, col='gray') +
+    geom_line(aes(x=x, y=K), col='pink') +
+    geom_line(aes(x=x, y=w)) +
+    ylab(expression(w[j](x))) +
+    theme(axis.title.y=element_text(margin = margin(r=5))) +
+    scale_y_continuous(breaks=0)
+```
+
+
+## Local linear estimator
+
+```{r, fig.height=4, fig.width=8}
+i <- 3
+ggplot(eg) +
+  geom_vline(xintercept=u0[i], col='red') +
+  geom_point(aes(x=x,y=y)) +
+  geom_line(data=fit, aes(x=x,y=y), col='blue')
+```
+
+```{r, fig.height=1.9, fig.width=8}
+X <- cbind(rep(1,NROW(eg)), eg$x - u0[i])
+W <- diag(df$K[1:NROW(eg) + (i-1)*NROW(eg)])
+Z <- solve(t(X) %*% W %*% X) %*% t(X) %*% W
+df$w[1:NROW(eg) + (i-1)*NROW(eg)] <- Z[1,]
+df %>% filter(u==u0[i]) %>%
+  ggplot() +
+    geom_vline(xintercept=u0[i], col='red') +
+    geom_hline(yintercept=0, col='gray') +
+    geom_line(aes(x=x, y=K), col='pink') +
+    geom_line(aes(x=x, y=w)) +
+    ylab(expression(w[j](x))) +
+    theme(axis.title.y=element_text(margin = margin(r=5))) +
+    scale_y_continuous(breaks=0)
+```
+
+
+## Local linear estimator
+
+```{r, fig.height=4, fig.width=8}
+i <- 4
+ggplot(eg) +
+  geom_vline(xintercept=u0[i], col='red') +
+  geom_point(aes(x=x,y=y)) +
+  geom_line(data=fit, aes(x=x,y=y), col='blue')
+```
+
+```{r, fig.height=1.9, fig.width=8}
+X <- cbind(rep(1,NROW(eg)), eg$x - u0[i])
+W <- diag(df$K[1:NROW(eg) + (i-1)*NROW(eg)])
+Z <- solve(t(X) %*% W %*% X) %*% t(X) %*% W
+df$w[1:NROW(eg) + (i-1)*NROW(eg)] <- Z[1,]
+df %>% filter(u==u0[i]) %>%
+  ggplot() +
+    geom_vline(xintercept=u0[i], col='red') +
+    geom_hline(yintercept=0, col='gray') +
+    geom_line(aes(x=x, y=K), col='pink') +
+    geom_line(aes(x=x, y=w)) +
+    ylab(expression(w[j](x))) +
+    theme(axis.title.y=element_text(margin = margin(r=5))) +
+    scale_y_continuous(breaks=0)
+```
+
+## Local quadratic smoother
+
+```{r}
+fit <- locpoly(eg$x, eg$y, degree=2, bandwidth=h) %>% as.tibble
+df$w2 <- df$w
+```
+
+```{r, fig.height=4, fig.width=8}
+i <- 1
+ggplot(eg) +
+  geom_vline(xintercept=u0[i], col='red') +
+  geom_point(aes(x=x,y=y)) +
+  geom_line(data=fit, aes(x=x,y=y), col='blue')
+```
+
+```{r, fig.height=1.9, fig.width=8}
+X <- cbind(rep(1,NROW(eg)), eg$x - u0[i], (eg$x - u0[i])^2)
+W <- diag(df$K[1:NROW(eg) + (i-1)*NROW(eg)])
+Z <- solve(t(X) %*% W %*% X) %*% t(X) %*% W
+df$w2[1:NROW(eg) + (i-1)*NROW(eg)] <- Z[1,]
+df %>% filter(u==u0[i]) %>%
+  ggplot() +
+    geom_vline(xintercept=u0[i], col='red') +
+    geom_hline(yintercept=0, col='gray') +
+    geom_line(aes(x=x, y=K), col='pink') +
+    geom_line(aes(x=x, y=w), col='green') +
+    geom_line(aes(x=x, y=w2)) +
+    ylab(expression(w[j](x))) +
+    theme(axis.title.y=element_text(margin = margin(r=5))) +
+    scale_y_continuous(breaks=0)
+```
+
+
+## Local quadratic smoother
+
+```{r, fig.height=4, fig.width=8}
+i <- 2
+ggplot(eg) +
+  geom_vline(xintercept=u0[i], col='red') +
+  geom_point(aes(x=x,y=y)) +
+  geom_line(data=fit, aes(x=x,y=y), col='blue')
+```
+
+```{r, fig.height=1.9, fig.width=8}
+X <- cbind(rep(1,NROW(eg)), eg$x - u0[i], (eg$x - u0[i])^2)
+W <- diag(df$K[1:NROW(eg) + (i-1)*NROW(eg)])
+Z <- solve(t(X) %*% W %*% X) %*% t(X) %*% W
+df$w2[1:NROW(eg) + (i-1)*NROW(eg)] <- Z[1,]
+df %>% filter(u==u0[i]) %>%
+  ggplot() +
+    geom_vline(xintercept=u0[i], col='red') +
+    geom_hline(yintercept=0, col='gray') +
+    geom_line(aes(x=x, y=K), col='pink') +
+    geom_line(aes(x=x, y=w), col='green') +
+    geom_line(aes(x=x, y=w2)) +
+    ylab(expression(w[j](x))) +
+    theme(axis.title.y=element_text(margin = margin(r=5))) +
+    scale_y_continuous(breaks=0)
+```
+
+## Local quadratic smoother
+
+```{r, fig.height=4, fig.width=8}
+i <- 3
+ggplot(eg) +
+  geom_vline(xintercept=u0[i], col='red') +
+  geom_point(aes(x=x,y=y)) +
+  geom_line(data=fit, aes(x=x,y=y), col='blue')
+```
+
+```{r, fig.height=1.9, fig.width=8}
+X <- cbind(rep(1,NROW(eg)), eg$x - u0[i], (eg$x - u0[i])^2)
+W <- diag(df$K[1:NROW(eg) + (i-1)*NROW(eg)])
+Z <- solve(t(X) %*% W %*% X) %*% t(X) %*% W
+df$w2[1:NROW(eg) + (i-1)*NROW(eg)] <- Z[1,]
+df %>% filter(u==u0[i]) %>%
+  ggplot() +
+    geom_vline(xintercept=u0[i], col='red') +
+    geom_hline(yintercept=0, col='gray') +
+    geom_line(aes(x=x, y=K), col='pink') +
+    geom_line(aes(x=x, y=w), col='green') +
+    geom_line(aes(x=x, y=w2)) +
+    ylab(expression(w[j](x))) +
+    theme(axis.title.y=element_text(margin = margin(r=5))) +
+    scale_y_continuous(breaks=0)
+```
+
+## Local quadratic smoother
+
+```{r, fig.height=4, fig.width=8}
+i <- 4
+ggplot(eg) +
+  geom_vline(xintercept=u0[i], col='red') +
+  geom_point(aes(x=x,y=y)) +
+  geom_line(data=fit, aes(x=x,y=y), col='blue')
+```
+
+```{r, fig.height=1.9, fig.width=8}
+X <- cbind(rep(1,NROW(eg)), eg$x - u0[i], (eg$x - u0[i])^2)
+W <- diag(df$K[1:NROW(eg) + (i-1)*NROW(eg)])
+Z <- solve(t(X) %*% W %*% X) %*% t(X) %*% W
+df$w2[1:NROW(eg) + (i-1)*NROW(eg)] <- Z[1,]
+df %>% filter(u==u0[i]) %>%
+  ggplot() +
+    geom_vline(xintercept=u0[i], col='red') +
+    geom_hline(yintercept=0, col='gray') +
+    geom_line(aes(x=x, y=K), col='pink') +
+    geom_line(aes(x=x, y=w), col='green') +
+    geom_line(aes(x=x, y=w2)) +
+    ylab(expression(w[j](x))) +
+    theme(axis.title.y=element_text(margin = margin(r=5))) +
+    scale_y_continuous(breaks=0)
+```
+
+## Smoothing spline
+
+ * A cubic smoothing spline can also be written as a kernel smoother with  kernel function asymptotically equal to
+$$K_s(u) = \frac{1}{2}\exp\left(-\frac{|u|}{h\sqrt{2}}\right)\sin\left(\frac{|u|}{h\sqrt{2}} + \frac{\pi}{4}\right).$$
+
+
+## Smoothing spline
+
+```{r}
+fit <- smooth.spline(eg$x, eg$y, cv=TRUE)
+lambda <- fit$lambda
+fit <- tibble(x=fit$x,y=fit$y)
+```
+
+```{r, fig.height=4, fig.width=8}
+i <- 1
+ggplot(eg) +
+  geom_vline(xintercept=u0[i], col='red') +
+  geom_point(aes(x=x,y=y)) +
+  geom_line(data=fit, aes(x=x,y=y), col='blue')
+```
+
+```{r, fig.height=1.9, fig.width=8}
+df$Ks <- 0.5 * exp(-abs(df$x- u0[i]) / .5/ sqrt(2))  * sin( abs(df$x-u0[i]) / .5/ sqrt(2)  + pi/4)
+j <- df$u==u0[i]
+df$Ks[j] <- df$Ks[j]/sum(df$Ks[j])
+df %>% filter(u==u0[i]) %>%
+  ggplot() +
+    geom_vline(xintercept=u0[i], col='red') +
+    geom_hline(yintercept=0, col='gray') +
+    geom_line(aes(x=x, y=K), col='pink') +
+    geom_line(aes(x=x, y=Ks)) +
+    ylab(expression(w[j](x))) +
+    theme(axis.title.y=element_text(margin = margin(r=5))) +
+    scale_y_continuous(breaks=0)
+```
+
+
+## Smoothing spline
+
+```{r, fig.height=4, fig.width=8}
+i <- 2
+ggplot(eg) +
+  geom_vline(xintercept=u0[i], col='red') +
+  geom_point(aes(x=x,y=y)) +
+  geom_line(data=fit, aes(x=x,y=y), col='blue')
+```
+
+```{r, fig.height=1.9, fig.width=8}
+df$Ks <- 0.5 * exp(-abs(df$x- u0[i]) / .5/ sqrt(2))  * sin( abs(df$x-u0[i]) / .5/ sqrt(2)  + pi/4)
+j <- df$u==u0[i]
+df$Ks[j] <- df$Ks[j]/sum(df$Ks[j])
+df %>% filter(u==u0[i]) %>%
+  ggplot() +
+    geom_vline(xintercept=u0[i], col='red') +
+    geom_hline(yintercept=0, col='gray') +
+    geom_line(aes(x=x, y=K), col='pink') +
+    geom_line(aes(x=x, y=Ks)) +
+    ylab(expression(w[j](x))) +
+    theme(axis.title.y=element_text(margin = margin(r=5))) +
+    scale_y_continuous(breaks=0)
+```
+
+
+## Smoothing spline
+
+
+```{r, fig.height=4, fig.width=8}
+i <- 3
+ggplot(eg) +
+  geom_vline(xintercept=u0[i], col='red') +
+  geom_point(aes(x=x,y=y)) +
+  geom_line(data=fit, aes(x=x,y=y), col='blue')
+```
+
+```{r, fig.height=1.9, fig.width=8}
+df$Ks <- 0.5 * exp(-abs(df$x- u0[i]) / .5/ sqrt(2))  * sin( abs(df$x-u0[i]) / .5/ sqrt(2)  + pi/4)
+j <- df$u==u0[i]
+df$Ks[j] <- df$Ks[j]/sum(df$Ks[j])
+df %>% filter(u==u0[i]) %>%
+  ggplot() +
+    geom_vline(xintercept=u0[i], col='red') +
+    geom_hline(yintercept=0, col='gray') +
+    geom_line(aes(x=x, y=K), col='pink') +
+    geom_line(aes(x=x, y=Ks)) +
+    ylab(expression(w[j](x))) +
+    theme(axis.title.y=element_text(margin = margin(r=5))) +
+    scale_y_continuous(breaks=0)
+```
+
+
+## Smoothing spline
+
+```{r, fig.height=4, fig.width=8}
+i <- 4
+ggplot(eg) +
+  geom_vline(xintercept=u0[i], col='red') +
+  geom_point(aes(x=x,y=y)) +
+  geom_line(data=fit, aes(x=x,y=y), col='blue')
+```
+
+```{r, fig.height=1.9, fig.width=8}
+df$Ks <- 0.5 * exp(-abs(df$x- u0[i]) / .5/ sqrt(2))  * sin( abs(df$x-u0[i]) / .5/ sqrt(2)  + pi/4)
+j <- df$u==u0[i]
+df$Ks[j] <- df$Ks[j]/sum(df$Ks[j])
+df %>% filter(u==u0[i]) %>%
+  ggplot() +
+    geom_vline(xintercept=u0[i], col='red') +
+    geom_hline(yintercept=0, col='gray') +
+    geom_line(aes(x=x, y=K), col='pink') +
+    geom_line(aes(x=x, y=Ks)) +
+    ylab(expression(w[j](x))) +
+    theme(axis.title.y=element_text(margin = margin(r=5))) +
+    scale_y_continuous(breaks=0)
+```
+
+
+
+## Regression splines
+
+ Regression splines are linear models, and so fitted values can be written as
+
+Therefore,
+$$\hat{f}(x) = {\bm{x}^*}'(X'X)^{-1}X'\bm{Y} = \sum_{j=1}^n l_j(x)y_j$$
+where
+$$l_j(x) = {\bm{x}^*}'(X'X)^{-1}{\bm{x}^*}'$$
+
+
+
+## Regression splines
+
+```{r}
+fit <- lm(y ~ ns(x, df=6), data=eg)
+fit <- tibble(x=eg$x,y=fitted(fit))
+df$w3 <- df$w
+```
+
+```{r, fig.height=4, fig.width=8}
+i <- 1
+ggplot(eg) +
+  geom_vline(xintercept=u0[i], col='red') +
+  geom_point(aes(x=x,y=y)) +
+  geom_line(data=fit, aes(x=x,y=y), col='blue')
+```
+
+```{r, fig.height=1.9, fig.width=8}
+X <- cbind(rep(1,NROW(eg)), ns(eg$x, df=6))
+Z <- X %*% solve(t(X) %*% X) %*% t(X)
+j <- which.min(abs(eg$x-u0[i]))
+df$w3[1:NROW(eg) + (i-1)*NROW(eg)] <- Z[j,]
+df %>% filter(u==u0[i]) %>%
+  ggplot() +
+    geom_vline(xintercept=u0[i], col='red') +
+    geom_hline(yintercept=0, col='gray') +
+    geom_line(aes(x=x, y=K), col='pink') +
+    geom_line(aes(x=x, y=w3)) +
+    ylab(expression(w[j](x))) +
+    theme(axis.title.y=element_text(margin = margin(r=5))) +
+    scale_y_continuous(breaks=0)
+```
+
+
+## Regression splines
+
+
+```{r, fig.height=4, fig.width=8}
+i <- 2
+ggplot(eg) +
+  geom_vline(xintercept=u0[i], col='red') +
+  geom_point(aes(x=x,y=y)) +
+  geom_line(data=fit, aes(x=x,y=y), col='blue')
+```
+
+```{r, fig.height=1.9, fig.width=8}
+X <- cbind(rep(1,NROW(eg)), ns(eg$x, df=6))
+Z <- X %*% solve(t(X) %*% X) %*% t(X)
+j <- which.min(abs(eg$x-u0[i]))
+df$w3[1:NROW(eg) + (i-1)*NROW(eg)] <- Z[j,]
+df %>% filter(u==u0[i]) %>%
+  ggplot() +
+    geom_vline(xintercept=u0[i], col='red') +
+    geom_hline(yintercept=0, col='gray') +
+    geom_line(aes(x=x, y=K), col='pink') +
+    geom_line(aes(x=x, y=w3)) +
+    ylab(expression(w[j](x))) +
+    theme(axis.title.y=element_text(margin = margin(r=5))) +
+    scale_y_continuous(breaks=0)
+```
+
+
+
+## Regression splines
+
+
+```{r, fig.height=4, fig.width=8}
+i <- 3
+ggplot(eg) +
+  geom_vline(xintercept=u0[i], col='red') +
+  geom_point(aes(x=x,y=y)) +
+  geom_line(data=fit, aes(x=x,y=y), col='blue')
+```
+
+```{r, fig.height=1.9, fig.width=8}
+X <- cbind(rep(1,NROW(eg)), ns(eg$x, df=6))
+Z <- X %*% solve(t(X) %*% X) %*% t(X)
+j <- which.min(abs(eg$x-u0[i]))
+df$w3[1:NROW(eg) + (i-1)*NROW(eg)] <- Z[j,]
+df %>% filter(u==u0[i]) %>%
+  ggplot() +
+    geom_vline(xintercept=u0[i], col='red') +
+    geom_hline(yintercept=0, col='gray') +
+    geom_line(aes(x=x, y=K), col='pink') +
+    geom_line(aes(x=x, y=w3)) +
+    ylab(expression(w[j](x))) +
+    theme(axis.title.y=element_text(margin = margin(r=5))) +
+    scale_y_continuous(breaks=0)
+```
+
+
+
+## Regression splines
+
+
+```{r, fig.height=4, fig.width=8}
+i <- 4
+ggplot(eg) +
+  geom_vline(xintercept=u0[i], col='red') +
+  geom_point(aes(x=x,y=y)) +
+  geom_line(data=fit, aes(x=x,y=y), col='blue')
+```
+
+```{r, fig.height=1.9, fig.width=8}
+X <- cbind(rep(1,NROW(eg)), ns(eg$x, df=6))
+Z <- X %*% solve(t(X) %*% X) %*% t(X)
+j <- which.min(abs(eg$x-u0[i]))
+df$w3[1:NROW(eg) + (i-1)*NROW(eg)] <- Z[j,]
+df %>% filter(u==u0[i]) %>%
+  ggplot() +
+    geom_vline(xintercept=u0[i], col='red') +
+    geom_hline(yintercept=0, col='gray') +
+    geom_line(aes(x=x, y=K), col='pink') +
+    geom_line(aes(x=x, y=w3)) +
+    ylab(expression(w[j](x))) +
+    theme(axis.title.y=element_text(margin = margin(r=5))) +
+    scale_y_continuous(breaks=0)
+```
+
+
+# Inference for linear smoothers
+
+
+## Inference for linear smoothers
+
+All of the methods we have looked at can be written in the form
+\begin{block}{}
+$$\hat{f}(x) = \sum_{j=1}^n w_j(x) y_j.$$
+\end{block}
+Thus they are linear in the observations. The set of weights, $w_j(x)$, is
+known as the equivalent kernel at $x$.
+
+Let $\hat{\bm{f}} = [\hat f(x_1),\hat f(x_2),\dots, \hat f(x_n)]'$.  Then
+$${\hat{\bm f} = \bm{S}\bm{y}}$$
+where $\bm{S} = [w_j(x_i)]$ is an $n\times n$ matrix that we call a
+*smoother matrix*.
+
+
+## Inference for linear smoothers
+
+
+ * The rows of $\bm{S}$ are the equivalent kernels for producing fits at each of the observed values $x_1,\dots,x_n$.
+ * Any reasonable smoother should preserve a constant function so that $\bm{S}{\bm{1}} = \bm{1}$ where $\bm{1}$ is a vector of ones.  This implies that the sum of the weights in each row is one.
+ * The matrix $\bm{S}$ is analogous to the hat matrix $\bm{X}(\bm{X}'\bm{X})^{-1}\bm{X}'$ in a standard linear model.
+
+## Degrees of freedom
+\fontsize{14}{16}\sf
+
+**Want:** Approximate df for our linear smoothers.
+
+ *  high df for very wiggly smoothers
+ * low df for very smooth smoothers.
+ * Least squares regression: $\bm{S}=\bm{X}(\bm{X}'\bm{X})^{-1}\bm{X}'$.
+ \vspace*{-0.5cm}
+  \begin{align*}
+  \gamma = \text{df} &= \text{\# linearly independent predictors in model}\\
+                     &= \text{rank}(\bm{S})\\
+                     &= \text{tr}(\bm{S})\\
+                     &= \text{tr}(\bm{S}\bm{S}')\\
+                     & = \text{tr}(2\bm{S} - \bm{S}\bm{S}').
+\end{align*}
+Any of these could be used for df of general linear smoother.
+
+## Estimating the variance
+
+* Linear regression: error has $n-\gamma$ df.
+
+* Hence define df of error for a linear smoother as $n-\gamma$ where
+$\gamma = \text{tr}(\bm{S}).$
+
+* Assuming zero bias for smoother, an unbiased estimator of $\sigma^2$ is given by
+\begin{block}{}
+$$\hat\sigma^2 = \frac{1}{n-\gamma}\sum_{j=1}^n (y_j - \hat{f}(x_j))^2.$$
+\end{block}
+
+## Confidence intervals
+
+$\text{Cov}(\hat{\bm{f}}) = \bm{S}\bm{S}'\sigma^2$
+
+Assuming negligible bias, approximate 95\% CI for $\bm{f}$ are:
+\begin{block}{}
+$$\hat{\bm{f}}  ~\pm~1.96\hat\sigma\sqrt{\text{diag}(\bm{S}\bm{S}')}.$$
+\end{block}
+
+ * Pointwise intervals. (i.e,. 95\% CI for each value of $x$.)
+ * On average, true value of $f(x)$ lies outside these intervals 5\% of the time.
+
+
+
+## Approximate F tests
+
+Approximate F tests using the approximate df.
+
+To compare two smooths:\vspace*{-2ex}
+\begin{align*}
+\hat{\bm{f}}_1 &= \bm{S}_1 \bm{y} \qquad (\text{df} = \gamma_1)\\
+\hat{\bm{f}}_2 &= \bm{S}_2 \bm{y}\qquad (\text{df} = \gamma_2).
+\end{align*}
+$\gamma_i=$ df $=\text{tr}(2\bm{S}_i -
+\bm{S}_i\bm{S}_i')$ for each of the models $i=1,2$.
+
+Let RSS$_1$ and RSS$_2$ be residual sum of squares for each smoother.
+\begin{block}{}
+$$\frac{(\text{RSS}_1-\text{RSS}_2)/(\gamma_2-\gamma_1)}
+    {\text{RSS}_2/(n-\gamma_2)} \sim F_{\gamma_2-\gamma_1,n-\gamma_2}.$$
+\end{block}
+
+* Implemented by `anova` in R
+
+
+## Applications
+
+\alert{Test for linearity}
+
+Let $\hat{\bm{f}}_1$ represent a linear regression and we wish to test if the
+linearity is real by fitting a nonparametric nonlinear smooth curve
+$\hat{\bm{f}}_2$.\pause
+
+\alert{Test for bias in residuals}
+
+After fitting a model, the residuals can be modelled as a function of the predictor variable.  If the function is not significantly different from the zero function, there is no significant bias.
+
+
+## Bias and variance
+
+The bias vector is
+$\bm{b} = \bm{f}  - \E(\bm{S}\bm{y}) = \bm{f} - \bm{S}\bm{f} = (\bm{I}-\bm{S})\bm{f}.$
+
+Then we can compute the mean square error as
+\begin{align*}
+\text{MSE} &= \frac1n \sum_{j=1}^n \V(\hat{f}_i) + \frac1n \sum_{j=1}^n b_i^2 \\
+    &= \frac{\text{tr}(\bm{S}\bm{S}')}{n} \sigma^2 + \frac{\bm{b}'\bm{b}}{n}
+\end{align*}
+The first term measures variance while the second measures squared bias.
+
+* Smoothing is a bias-variance tradeoff
+
+
+
+## Cross-validation
+
+Find $h$ which minimises cross-validation function
+$$\text{CV}(h) = \frac{1}{n} \sum_{j=1}^n [\hat{f}_j(x_j) - y_j]^2$$
+$$\hat{f}_j(x) = \frac{1}{1-w_j(x)} \sum_{\scriptstyle i=1 \atop
+                                        \scriptstyle i\ne j}^n w_i(x) y_i.$$
+
+* residuals: $\hat{e}_j = y_j - \hat{f}(x_j)$ 
+* LOO residuals: $\hat{e}_{(j)} = y_j - \hat{f}_j(x_j)$
+
+Use same computational trick as for LM to avoid  computing $n$ separate smoothers.
+
+
+## Cross-validation
+\vspace*{-0.9cm}
+
+\begin{align*}
+\hat{e}_{(j)} &= y_j - \hat{f}_j(x_j) \\
+           &= y_j - \frac{1}{1-w_j(x_j)} \sum_{\scriptstyle i=1 \atop
+                                         \scriptstyle i\ne j}^n w_i(x_j) y_i.\\
+           &= y_j - \frac{1}{1-w_j(x_j)} \left(\hat{f}(x_j) - w_j(x_j)y_j\right) \\
+           &= y_j\left(1 + \frac{w_j(x_j)}{1-w_j(x_j)}\right)
+                - \frac{1}{1-w_j(x_j)} \hat{f}(x_j) \\
+           &= y_j\left(\frac{1-w_j(x_j) + w_j(x_j)}{1-w_j(x_j)}\right)
+                 - \frac{1}{1-w_j(x_j)} \hat{f}(x_j) \\
+           &= \left(y_j-\hat{f}(x_j)\right) \frac{1}{1-w_j(x_j)}
+           =  \frac{\hat{e}_j}{1-w_j(x_j)}
+\end{align*}
+
+
+## Cross-validation
+
+\begin{block}{}
+$$
+\text{CV}(h) = \frac{1}{n} \sum_{j=1}^n \hat{e}^2_{(j)} 
+     = \frac1n \sum_{j=1}^n \hat{e}_j^2 \left(1 - w_j(x_j)\right)^{-2}
+$$
+\end{block}\pause
+
+CV($h$) is a **penalized mean squared error**.\pause\vspace*{0.5cm}
+
+\alert{Generalization:}
+
+Find $h$ which minimises penalized MSE:
+$$G(h) = \frac{1}{n} \sum_{j=1}^n [\hat{f}(x_j) - y_j]^2p(w_j(x_j))$$
+where $p(u)$ is a penalty function.
+
+CV: $p(u)=(1-u)^{-2}$.
+
+
+## Penalized MSE
+
+\begin{block}{Examples:}
+\begin{tabular}{ll}
+Shibata's selector & $p(u) = 1+2u$ \\
+Generalized cross-validation & $p(u) = (1-u)^{-2}$ \\
+Akaike's information criterion & $p(u) = \exp(2u)$ \\
+Finite prediction error & $p(u) = (1+u)/(1-u)$ \\
+Rice's T & $p(u) = (1-2u)^{-1}$
+\end{tabular}
+\end{block}
+
+ * Goal is to penalize small bandwidths.
+ * $w_j(x_j)\rightarrow1$ as $h\rightarrow0$ and $w_j(x_j)\rightarrow0$ as $h\rightarrow\infty$.
+ * Different $p(u)$ almost equal for large $h$ but penalize small $h$ differently.
+
+## Penalized MSE
+
+* `mgcv::gam` function uses GCV.
+
+* If $\hat{h}$ is minimising bandwidth of $G(h)$ and $\hat{h}_0$ is
+MSE optimal bandwidth, then
+$$\frac{\text{MSE}(\hat{h})}{\text{MSE}(\hat{h}_0)} \stackrel{p}{\rightarrow} 1
+\qquad \text{and}\qquad
+\frac{\hat{h}}{\hat{h}_0} \stackrel{p}{\rightarrow} 1.$$
+
+
+
+# Derivative estimation
+
+## Derivative estimation
+
+$$\hat{f}(x) = \sum_{j=1}^n w_j(x) y_j
+\qquad\Rightarrow\qquad
+\hat{f}^{(k)}(x) = \sum_{j=1}^n w_j^{(k)}(x) y_j.$$
+
+ * if $w_j(x)$ is not smooth, then $w_j^{(k)}(x)$ will have some discontinuities.
+ * To obtain smooth estimate of $\hat{f}^{(k)}(x)$, we need $w_j(x)$ to have continuous derivatives up to order $k$.  This rules out many of the standard kernel weighting functions.
+
+
+## Derivative estimation
+
+For an asymptotically unbiased estimator of $f'(x)$, we require\vspace*{-0.8cm}
+\begin{align*}
+\sum_{j=1}^n w^{(1)}_j(x) &= 0 \\
+\text{and}\qquad
+\sum_{j=1}^n w^{(1)}_j(x)(x-x_j) &= 1.
+\end{align*}
+
+ * Local polynomials of degree $p\ge1$ will satisfy these constraints. 
+ * So will cubic splines (of any flavour)
+ * But not kernel smooths.
+
+
+## Derivative estimation
+
+For an asymptotically unbiased estimator of $f''(x)$, we require\vspace*{-0.8cm}
+\begin{align*}
+\sum_{j=1}^n w^{(2)}_j(x) &= 0 \\
+\sum_{j=1}^n w^{(2)}_j(x)(x-x_j) &= 0 \\
+\text{and}\qquad
+\sum_{j=1}^n w^{(2)}_j(x)(x-x_j)^2 &= 2.
+\end{align*}
+
+ * Local polynomials of degree $p\ge2$ will satisfy these constraints. 
+ * So will cubic splines (of any flavour)
+ * But not kernel or locally linear smoothers.
+
+
+# Multidimensional smoothers
+
+## Multidimensional kernel smoothing
+\fontsize{12}{14}\sf
+
+If $m\ge2$ predictors, need to fit surface rather than line.
+\begin{block}{Multidimensional kernel smoothing}
+$$\hat{f}(\bm z) = \sum_{j=1}^n w_j(\bm z) y_j
+\quad\text{where}\quad
+w_j(\bm z) = \frac{K_m(\bm z-\bm x_j)}
+        {\sum_{j=1}^n K_m(\bm z-\bm x_j)}.$$
+\end{block}
+$\bm z$ and $\bm x_j$ are $m$-dimensional vectors and $K_m(\bm
+u)$ is an $m$-dimensional function.
+
+Product kernel:
+:  $K_m(\bm u) = \prod_{i=1}^m \frac{1}{h_i}K(u_i/h_i)$ where $K(u)$ is univariate kernel and $h_i$ is smoothing parameter in $i$th dimension.
+
+Multidimensional distance:
+:  $K_m(\bm u) = \frac{1}{h}K(\|u\|/h)$
+where $\|u\|$ is distance metric (e.g. Euclidean distance). Only one smoothing parameter, $h$, used.
+
+## Multidimensional kernel smoothing
+
+ * If multidimensional distance used, it is usually necessary to standardise each predictor by dividing by its standard deviation or some other measure of spread.
+
+ * If $m=1$, both methods give the standard univariate results.
+
+## Local polynomial surfaces
+
+Locally weighted lines generalise easily to higher dimensions.
+
+ * Instead of computing local lines, compute a local plane.
+ * If predictors are $w$ and $v$, local plane is computed using
+multiple regression on $w$ and $v$.
+ * Local quadratic surfaces computed using multiple regression on $w$, $v$, $wv$, $w^2$ and $v^2$.
+
+```r
+fit <- loess(y ~ x + z, span)
+```
+
+## Bivariate smoothing
+\fontsize{11}{11}\sf
+
+```{r, echo=TRUE}
+lomod <- loess(sr ~ pop15 + ddpi, data=savings)
+```
+
+```{r, fig.height=4.2}
+xg <- seq(21,48,len=20)
+yg <- seq(0,17,len=20)
+zg <- expand.grid(pop15=xg,ddpi=yg)
+par(mar=c(0,0,0,0))
+persp(xg, yg, predict(lomod, zg), theta=-30, 
+      ticktype="detailed", col=heat.colors(500),
+      xlab="pop15", ylab="ddpi", zlab="savings rate")
+```
+
+
+
+## Bivariate splines
+
+**Smoothing splines** can be generalized to thin-plate splines in two dimensions.
+
+* Minimize\vspace*{-0.6cm}
+
+    \fontsize{12}{12}\sf
+
+$$ \sum_{i=1}^n (y_i - f(\bm{x}_i))^2 + \lambda \int\!\!\int \left[\textstyle
+\left(\frac{\partial^2 f}{\partial x_1^2}\right) +
+2\left(\frac{\partial^2 f}{\partial x_1\partial x_2}\right) +
+\left(\frac{\partial^2 f}{\partial x_2^2}\right)
+\right] dx_1\, dx_2.$$
+
+\fontsize{14}{16}\sf
+
+ * In R:
+
+    ```r
+    library(mgcv)
+    fit <- gam(y ~ s(x, z), data)
+    vis.gam(fit)
+    ```
+
+
+
+## Bivariate smoothing
+\fontsize{11}{11}\sf
+
+```{r, echo=TRUE}
+library(mgcv)
+smod <- gam(sr ~ s(pop15, ddpi), data=savings)
+```
+
+```{r, fig.height=4.2}
+par(mar=c(0,0,0,0))
+mgcv::vis.gam(smod, ticktype="detailed",theta=-30)
+```

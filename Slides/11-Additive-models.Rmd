@@ -1,0 +1,254 @@
+---
+title: "ETC3580: Advanced Statistical Modelling"
+author: "Week 11: Additive models"
+fontsize: 14pt
+output:
+  beamer_presentation:
+    theme: metropolis
+    fig_height: 5
+    fig_width: 7
+    highlight: tango
+    includes:
+      in_header: header.tex
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, cache=TRUE, warning=FALSE, message=FALSE,
+  dev.args=list(bg=grey(0.9), pointsize=11))
+library(faraway)
+library(tidyverse)
+library(mgcv)
+```
+
+
+# Penalized regression splines
+
+## Recall cubic regression splines
+
+\begin{block}{}
+$$ y = f(x) + \varepsilon$$
+$$f(x) = \beta_0 + \sum_{k=1}^{K+3} \beta_k \phi_k(x)$$
+where $\phi_1(x),\dots,\phi_{K+3}(x)$ is a family of spline functions.
+\end{block}
+
+\alert{Example:}
+
+ * Knots: $\kappa_1<\kappa_2<\cdots<\kappa_{K}$.
+ * $\phi_1(x)=x$, $\phi_2(x) = x^2$, $\phi_3(x)=x^3$, $\phi_{k}(x) =
+(x-\kappa_{k-3})_+^3$ \quad for $k=4,\dots,K+3$.
+
+* Choice of knots can be difficult and arbitrary.
+
+## Penalized spline regression
+
+\alert{Idea:} Use many knots, but constrain their influence by
+$$\sum_{k=4}^{K+3} \beta_k^2 < C.$$
+
+\pause
+
+Let $D = \begin{bmatrix} \bm{0}_{4\times4} & \bm{0}_{4\times K} \\
+                         \bm{0}_{K \times4} & \bm{I}_{K\times K}
+    \end{bmatrix}.$
+
+\vspace*{0.4cm}
+
+Then we want to minimize
+
+$$\|\bm{y} - \bm{X}\bm{\beta}\|^2 \qquad \text{subject to}\qquad \bm{\beta}'\bm{D}\bm{\beta} \le C.$$
+
+
+## Penalized regression splines
+
+A Lagrange multiplier argument shows that this is equivalent to
+minimizing
+$$\|\bm{y} - \bm{X}\bm{\beta}\|^2 +
+\lambda^2\bm{\beta}'\bm{D}\bm{\beta}
+$$
+for some number $\lambda\ge0$.
+
+\vspace*{0.5cm}
+
+\textbf{Solution:} $\hat{\bm{\beta}}_\lambda = (\bm{X}'\bm{X} +
+\lambda^2\bm{D})^{-1}\bm{X}'\bm{y}.$
+
+
+ * A type of ridge regression.
+
+
+## Mixed model representation
+
+Split $\bm{X}$ matrix in two:
+$$\bm{X} = \begin{bmatrix}
+    1 & x_1 & x_1^2 & x_1^3 \\
+    \vdots & \vdots & \vdots & \vdots   \\
+    1 & x_n& x_n^2 & x_n^3
+    \end{bmatrix} \mbox{~and~}
+    \bm{Z} = \begin{bmatrix}
+    (x_1-\kappa_1)_+^3 & \dots & (x_1 - \kappa_K)_+^3\\
+    \vdots & \ddots & \vdots\\
+    (x_n-\kappa_1)_+^3 & \dots & (x_n - \kappa_K)_+^3
+    \end{bmatrix}$$
+and let $\bm{\beta} = [\beta_0,\beta_1,\beta_2,\beta_3]'$ and $\bm{u} = [u_1,\dots,u_K]'$.
+
+Then we want to minimize
+$$\|\bm{y} -
+\bm{X}\bm{\beta} - \bm{Z}\bm{u}\|^2 + \lambda^2\|\bm{u}\|^2 $$
+
+This is equivalent to estimating the mixed model
+$$\bm{y} = \bm{X}\bm{\beta} + \bm{Z}\bm{u} + \bm{\varepsilon}$$
+where $u_i \sim \mbox{N}(0,\sigma_u^2)$ and $\varepsilon_j \sim\mbox{N}(0,\sigma_\varepsilon^2)$.
+
+
+
+## Mixed model representation
+
+\alert{Advantages}
+
+ * Automatic penalty selection: use REML.
+
+ * Easy to develop Bayesian version
+
+
+
+\pause
+
+\alert{Formulas}
+
+Let $\lambda = \sigma_\varepsilon/\sigma_u$ and
+$\bm{V} = \text{Cov}(\bm{y}) = \sigma_u^2\bm{Z}\bm{Z}'+\sigma_\varepsilon^2\bm{I}$.
+\pause Then
+$$\hat{\bm{\beta}} = (\bm{X}\bm{V}^{-1}\bm{X})^{-1}\bm{X}'\bm{V}^{-1}\bm{y}.$$
+$$\hat{\bm{u}} = \sigma_u^2\bm{Z}'\bm{V}^{-1}(\bm{y}-\bm{X}\hat{\bm{\beta}}).$$
+
+$\bm{V}$ estimated using profile log-likelihood methods.
+
+
+## Choice of knots
+
+
+ * Provided the set of knots is relatively dense with respect to the $\{x_j\}$, the result hardly changes.
+ * Choose enough knots to model structure, but not too many knots to cause computational problems.
+ * Ruppert, Wand and Carroll recommend:
+
+    *  $\max(n/4,35)$ knots where $n=$ number of unique observations.
+    * $\kappa_j = \left(\frac{j+1}{K+1}\right)$th sample quantile of the unique $\{x_j\}$.
+
+ * `mgcv` package uses penalized regression splines by default.
+
+# Additive models
+
+## Additive models
+
+Avoid curse of dimensionality by assuming additive surface:\vspace*{-0.2cm}
+$$y = \beta_0 + \sum_{j=1}^p f_j(x_j) + \varepsilon$$
+where $\varepsilon \sim N(0,\sigma^2)$.
+
+ * Restricts complexity but a much richer class of surfaces than parametric models.
+ * Need to estimate $p$ one-dimensional functions instead of one $p$-dimensional function.
+ * Usually set each $f_j$ to have zero mean.
+ * Some $f_j$ may be linear.
+
+## Additive models
+
+ * Up to $p$ different bandwidths to select.
+ * Generalization of multiple regression model
+  $$ y = \beta_0 + \sum_{j=1}^p \beta_j x_j + \varepsilon$$
+which is also additive in its predictors.
+ * Estimated functions, $f_j$, are analogues of coefficients in linear regression.
+ * Interpretation easy with additive structure.
+
+## Additive models
+
+ * Categorical predictors: fit constant for each level as for linear models.
+ * Allow interaction between two continuous variables $x_j$ and $x_k$ by fitting a bivariate surface $f_{j,k}(x_j,x_k)$.
+ * Allow interaction betwen factor $x_j$ and continuous $x_k$ by fitting separate functions $f_{j,k}(x_k)$ for each level of $x_j$.
+
+## Additive models in R
+
+ * `gam` package: more smoothing approaches, uses a backfitting algorithm for estimation.
+ * `mgcv` package: simplest approach, with automated smoothing selection and wider functionality.
+ * `gss` package: smoothing splines only
+
+## Estimation
+
+\begin{block}{Back-fitting-algorithm (Hastie and Tibshirani, 1990)}
+\begin{enumerate}
+ \item Set $\beta_0 = \bar{y}$.
+ \item Set $f_j(x) = \hat\beta_j x$ where $\hat\beta_j$ is OLS estimate.
+ \item For $j=1,\dots,p,1,\dots,p,1,\dots,p,\dots$
+     $$f_j(x) = S(x_j, y - \beta_0 - \sum_{i\ne j}f_i(x_i))$$
+    where $S(x,u)$ means univariate smooth of $u$ on $x$.
+\end{enumerate}
+Iterate step 3 until convergence.\pause
+\end{block}
+
+ * $S$ could be *any* univariate smoother.
+ * $y - \beta_0 - \sum\limits_{i\ne j}f_i(x_i)$ is a "partial residual"
+
+## Estimation
+
+\begin{block}{Regression splines}
+No need for iterative back-fitting as the model can be written as a linear model.
+\end{block}
+
+\begin{block}{Penalized regression splines}
+No need for iterative back-fitting as the model can be written as a linear mixed-effects model.
+\end{block}
+
+
+
+## Inference for Additive Models
+
+Each fitted function can be written as a linear smoother \colorbox[rgb]{1,1,.5}{$\hat{\bm f}_j
+= \bm{S}_j\bm y$} for some $n\times n$ matrix $\bm{S}_j$.
+
+$\hat{\bm f}(\bm x)$ is a linear smoother.  Denote smoothing matrix as $\bm S$:
+$$\hat{\bm f}(\bm x) = \bm S \bm y = \beta_0{\bf 1} + \sum_{j=1}^p\bm{S}_j\bm y$$
+where ${\bf 1} = [1,1,\dots,1]^T$.
+Then
+$\bm S = \sum_{j=0}^p \bm{S}_j$
+where $\bm S_0$ is such that $\bm S_0\bm y = \beta_0{\bf 1}$.
+
+Thus all inference results for linear smoothers may be applied to
+additive model.
+
+
+# Generalized additive models
+
+## Generalised additive models
+
+\begin{block}{Generalized Linear Model (GLM)}
+\begin{itemize}
+\item Distribution of $y$
+\item Link function $g$
+\item $\E(y\mid x_1,\dots,x_p)=\mu$ where $g(\mu)=\beta_0 + \sum\limits_{j=1}^p \beta_j x_j$.
+\end{itemize}
+\end{block}\pause
+
+\begin{alertblock}{Generalised Additive Model (GAM)}
+\begin{itemize}
+\item Distribution of $y$
+\item Link function $g$
+\item $\E(y\mid x_1,\dots,x_p)=\mu$ where
+$g(\mu) = \beta_0 + \sum\limits_{j=1}^p f_j(x_j)$.
+\end{itemize}
+\end{alertblock}
+
+
+## Generalised additive models
+
+\alert{Examples:}
+
+ * $Y$ binary and $g(\mu) = \log[\mu(1-\mu)]$.  This is a logistic
+additive model.
+ * $Y$ normal and $g(\mu) = \mu$.  This is a standard additive model.
+
+
+\alert{Estimation}
+
+Hastie and Tibshirani describe method for fitting GAMs using a
+method known as ``local scoring'' which is an extension of the
+Fisher scoring procedure.
+
+
+

@@ -13,7 +13,7 @@ output:
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = FALSE, cache=FALSE, warning=FALSE, message=FALSE,
+knitr::opts_chunk$set(echo = FALSE, cache=TRUE, warning=FALSE, message=FALSE,
   dev.args=list(bg=grey(0.9), pointsize=11))
 library(tidyverse)
 set.seed(20180717)

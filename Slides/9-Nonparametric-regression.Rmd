@@ -1,0 +1,722 @@
+---
+title: "ETC3580: Advanced Statistical Modelling"
+author: "Week 9: Nonparametric regression"
+fontsize: 14pt
+output:
+  beamer_presentation:
+    theme: metropolis
+    fig_height: 4.5
+    fig_width: 7
+    highlight: tango
+    includes:
+      in_header: header.tex
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, cache=TRUE, warning=FALSE, message=FALSE,
+  dev.args=list(bg=grey(0.9), pointsize=11))
+library(faraway)
+library(tidyverse)
+library(KernSmooth)
+library(splines)
+set.seed(1)
+```
+
+# Nonlinear regression
+
+## Nonlinear regression
+
+\begin{block}{}
+$$y_i = f(x_i) + \varepsilon_i$$
+\end{block}
+
+ * How to estimate $f$?
+ * Could assume $f(x) = \beta_0 + \beta_1 x + \beta_2 x^2 + \beta_3 x^3$
+ * Or $f(x) = \beta_0 + \beta_1x^{\beta_2}$
+ * OK if you *know* the right form.
+ * But often better to assume only that $f$ is continuous and smooth.
+
+## Examples
+
+```{r examples}
+p1 <- ggplot(exa) +
+  geom_point(aes(x=x,y=y)) +
+  geom_line(aes(x=x, y=m),col='red') +
+  ggtitle("Example A")
+p2 <- ggplot(as.data.frame(exb)) +
+  geom_point(aes(x=x,y=y)) +
+  geom_line(aes(x=x, y=m),col='red') +
+  ggtitle("Example B")
+p3 <- ggplot(faithful) +
+  geom_point(aes(x=eruptions,y=waiting)) +
+  ggtitle("Old Faithful")
+gridExtra::grid.arrange(p1,p2,p3,nrow=1)
+```
+
+# Kernel estimators
+
+## Kernel estimators
+
+\begin{block}{Nadaraya--Watson estimator}
+$$\hat{f}_h(x) = \frac{\displaystyle\sum_{j=1}^n K\left(\frac{x-x_j}{h}\right) y_j}{\displaystyle\sum_{j=1}^n K\left(\frac{x-x_j}{h}\right)} $$
+\end{block}
+
+ * $K$ is a kernel function where $\int K = 1$, $K(a)=K(-a)$, and $K(0)\ge K(a)$, for all $a$.
+ * $\hat{f}$ is a weighted moving average
+ * Need to choose $K$ and $h$.
+
+## Common kernels
+\fontsize{14}{14}\sf
+
+\alert{Uniform}
+$$K(x)= \begin{cases}
+  \frac{1}{2} &  -1 < x < 1 \\
+  0 & \text{otherwise}.
+  \end{cases}$$
+
+\alert{Epanechnikov}
+$$K(x) = \begin{cases}
+  \frac{3}{4}(1-x^2) & -1 < x < 1 \\
+  0 & \text{otherwise}.
+  \end{cases}$$
+
+\alert{Tri-cube}
+$$K(x) = \begin{cases}
+  c(1-|x|^3)^3 & -1 < x < 1 \\
+  0 & \text{otherwise}.
+  \end{cases}$$
+
+\alert{Gaussian}
+$$K(x) = \frac{1}{\sqrt{2\pi}} e^{-\frac{1}{2}x^2}$$
+
+## Common kernels
+
+```{r kernels}
+x <- seq(-3,3,by=0.01)
+db <- data.frame(
+  x = x,
+  f1 = 0.5*as.numeric(abs(x)<1),
+  f2 = pmax(0, 0.75*(1-x^2)),
+  f3 = dnorm(x),
+  f4 = pmax(0, (1-abs(x)^3)^3/1.157143))
+ggplot(db, aes(x=x)) +
+  geom_line(aes(y=f1,col='Uniform')) +
+  geom_line(aes(y=f2,col="Epanechnikov")) +
+  geom_line(aes(y=f4,col="Tri-cube")) +
+  geom_line(aes(y=f3,col="Gaussian")) +
+  guides(col=guide_legend(title="Kernel")) +
+  ylab("K(x)")
+```
+
+## Old Faithful
+
+```{r faithfulplots}
+h <- seq(0.01,2,by=0.02)
+smr <- as.data.frame(matrix(NA,nrow=NROW(faithful), ncol=length(h)))
+for(i in seq_along(h))
+{
+  fname <- paste("figs/faithful",i,".pdf",sep="")
+  pdf(fname, height=5, width=8)
+  smr <- locpoly(faithful$eruptions, faithful$waiting, degree=0,
+                 bandwidth=h[i])
+  print(ggplot(faithful) +
+    geom_point(aes(x=eruptions,y=waiting)) +
+    ggtitle(paste("Old Faithful (Gaussian kernel, h=",h[i],")", sep="")) +
+    geom_line(data=as.data.frame(smr), aes(x=x, y=y), col='blue'))
+  crop::dev.off.crop()
+}
+```
+
+\centerline{\animategraphics[controls,buttonsize=0.3cm,width=12.5cm]
+    {6}{"faithful"}{1}{100}}
+
+
+## Kernel smoothing
+
+ * A smooth kernel is better, but otherwise the choice of kernel makes little difference.
+ * Optimal kernel (minimizing MSE) is Epanechnikov. It is also fast.
+ * The choice of $h$ is crucial.
+
+
+## Example A
+
+```{r exaplots}
+h <- seq(0.005,0.25,by=0.005)
+smr <- as.data.frame(matrix(NA,nrow=NROW(exa), ncol=length(h)))
+for(i in seq_along(h))
+{
+  fname <- paste("figs/exa",i,".pdf",sep="")
+  pdf(fname, height=5, width=8)
+  smr <- locpoly(exa$x, exa$y, degree=0,
+                 bandwidth=h[i])
+  print(ggplot(exa) +
+    geom_point(aes(x=x,y=y)) +
+    ggtitle(paste("Example A (Gaussian kernel, h=",h[i],")", sep="")) +
+    geom_line(data=as.data.frame(smr), aes(x=x, y=y), col='blue')+
+      geom_line(aes(x=x,y=m), col='red'))
+  crop::dev.off.crop()
+}
+```
+
+\centerline{\animategraphics[controls,buttonsize=0.3cm,width=12.5cm]
+    {6}{"exa"}{1}{50}}
+
+## Example B
+
+```{r exbplots}
+h <- seq(0.005,0.25,by=0.005)
+exb <- as.data.frame(exb)
+smr <- as.data.frame(matrix(NA,nrow=NROW(exb), ncol=length(h)))
+for(i in seq_along(h))
+{
+  fname <- paste("figs/exb",i,".pdf",sep="")
+  pdf(fname, height=5, width=8)
+  smr <- locpoly(exb$x, exb$y, degree=0,
+                 bandwidth=h[i])
+  print(ggplot(exb) +
+    geom_point(aes(x=x,y=y)) +
+    ggtitle(paste("Example B (Gaussian kernel, h=",h[i],")", sep="")) +
+    geom_line(data=as.data.frame(smr), aes(x=x, y=y), col='blue')+
+      geom_line(aes(x=x,y=m), col='red'))
+  crop::dev.off.crop()
+}
+```
+
+\centerline{\animategraphics[controls,buttonsize=0.3cm,width=12.5cm]
+    {6}{"exb"}{1}{50}}
+
+## Cross-validation
+
+$$CV(h) = \frac{1}{n} \sum_{j=1}^n (y_j - \hat{f}^{(-j)}_h(x_j))^2$$
+
+ * $(-j)$ indicates $j$th point omitted from estimate
+ * Pick $h$ that minimizes CV.
+ * Works ok provided there are no duplicate $(x,y)$ pairs. But occasionally odd results.
+
+## MSE
+\fontsize{14}{17}\sf
+
+Let $y=f(x) + \varepsilon$ where $\varepsilon \sim IID(0,\sigma^2)$. Then
+
+\begin{block}{}
+$$\text{MSE}(h) = \E [f(x) - \hat{f}_h(x)] ^2
+ \approx \frac{\sigma^2R(K)}{nh} + \frac{\sigma_K^4 h^4[f''(x)]^2}{4}$$
+\end{block}
+
+ * $R(K) = \displaystyle\int K^2(x) dx$, \qquad $\sigma_K^2 = \displaystyle\int x^2K(x)dx$
+
+ * Consistent estimator if $nh\rightarrow\infty$ and $h\rightarrow0$ as $n\rightarrow\infty$.
+
+ * $h_{\text{optimal}} \approx\displaystyle \left(\frac{R(K)}{n[f''(x)]^2\sigma_K^4}\right)^{1/5}$
+
+
+## Kernel smoothing in R
+\fontsize{11}{11}\sf
+
+Many packages available. One of the better ones is **KernSmooth**:
+
+```{r, echo=TRUE, fig.height=3}
+fit <- locpoly(faithful$eruptions, faithful$waiting,
+        degree=0, bandwidth=0.3) %>% as.tibble
+ggplot(faithful) +
+  geom_point(aes(x=eruptions,y=waiting)) +
+  geom_line(data=fit, aes(x=x,y=y), col='blue')
+```
+
+# Local polynomials
+
+## Local polynomials
+
+Kernel smoothing is a local constant method:
+
+\begin{block}{}
+$$\text{WLS}(x) = \sum_{j=1}^n w_j(x) (y_j - a_0)^2$$
+where $w_j(x) = \frac{K\left(\frac{x-x_j}{h}\right)}{\sum_{i=1}^n K\left(\frac{x-x_i}{h}\right)}$
+\end{block}
+
+is minimized by
+$$\hat{f}(x) = \hat{a}_0 = \sum_{j=1}^n w_j(x)y_j$$
+
+## Local polynomials
+
+We can compute local linear instead:
+
+\begin{block}{}
+$$\text{WLS}(x) = \sum_{j=1}^n w_j(x) (y_j - a_0 - a_1(x_j-x))^2$$
+\end{block}
+
+$$\hat{f}(x) = \hat{a}_0$$
+
+## Local polynomials
+
+\placefig{2.3}{1.5}{height=8cm,width=8cm}{pulplocreg}
+
+## Local polynomials
+
+\begin{block}{}
+$$\text{WLS}(x) = \sum_{j=1}^n w_j(x) (y_j - \sum_{k=0}^p a_k(x_j-x)^p )^2$$
+\end{block}
+
+$$\hat{f}(x) = \hat{a}_0$$
+
+ * Local linear and local quadratic are commonly used.
+ * Robust regression can be used instead
+ * Less biased at boundaries than kernel smoothing
+ * Local quadratic less biased at peaks and troughs than local linear or kernel
+
+## Local polynomials in R
+
+* One useful implementation is\newline `KernSmooth::locpoly(x, y, degree, bandwidth)`
+* `dpill` can be used to choose the `bandwidth` $h$ if `degree=1`.
+* Otherwise, $h$ could be selected by cross-validation.
+* But most people seem to use trial and error --- finding the largest $h$ that captures what they think they see by eye.
+
+
+
+## Loess
+
+Best known implementation is **loess** (locally quadratic)
+
+```r
+fit <- loess(y ~ x, span=0.75, degree=2,
+  family="gaussian", data)
+```
+
+ * Uses tri-cube kernel and variable bandwidth.
+ * `span` controls bandwidth. Specified in terms of percentage of data covered.
+ * `degree` is order of polynomial
+ * Use `family="symmetric"` for a robust fit
+
+## Loess
+
+```{r faithfulloess}
+smr <- loess(waiting ~ eruptions, data=faithful)
+ggplot(faithful) +
+    geom_point(aes(x=eruptions,y=waiting)) +
+    ggtitle("Old Faithful (Loess, span=0.75)") +
+    geom_line(aes(x=eruptions, y=fitted(smr)), col='blue')
+```
+
+
+## Loess in R
+
+\fontsize{12}{14}\sf
+
+```r
+smr <- loess(waiting ~ eruptions, data=faithful)
+ggplot(faithful) +
+    geom_point(aes(x=eruptions,y=waiting)) +
+    ggtitle("Old Faithful (Loess, span=0.75)") +
+    geom_line(aes(x=eruptions, y=fitted(smr)),
+      col='blue')
+```
+
+
+## Loess
+
+```{r exaloess}
+smr <- loess(y ~ x, data=exa)
+ggplot(exa) +
+    geom_point(aes(x=x,y=y)) +
+    ggtitle("Example A (Loess, span=0.75)") +
+    geom_line(aes(x=x, y=fitted(smr)), col='blue') +
+    geom_line(aes(x=x,y=m), col='red')
+```
+
+
+## Loess
+
+```{r exa2loess}
+smr <- loess(y ~ x, data=exa, span=0.22)
+ggplot(exa) +
+    geom_point(aes(x=x,y=y)) +
+    ggtitle("Example A (Loess, span=0.22)") +
+    geom_line(aes(x=x, y=fitted(smr)), col='blue') +
+    geom_line(aes(x=x,y=m), col='red')
+```
+
+
+## Loess
+
+```{r exbloess}
+smr <- loess(y ~ x, data=exb, family='symmetric')
+ggplot(as.data.frame(exb)) +
+    geom_point(aes(x=x,y=y)) +
+    ggtitle("Example B (Robust Loess, span=0.75)") +
+    geom_line(aes(x=x, y=fitted(smr)), col='blue') +
+    geom_line(aes(x=x,y=m), col='red')
+```
+
+## Loess and geom_smooth()
+\fontsize{12}{12}\sf
+
+```{r loessmooth, echo=TRUE, fig.height=3.4}
+ggplot(exa) +
+    geom_point(aes(x=x,y=y)) +
+    geom_smooth(aes(x=x,y=y), method='loess',
+      span=0.22)
+```
+
+## Loess and geom_smooth()
+
+* Because local polynomials use local linear models, we can easily find standard errors for the fitted values.
+
+* Connected together, these form a pointwise confidence band.
+
+* Automatically produced using `geom_smooth`
+
+
+
+# Splines
+
+
+## Interpolating splines
+
+\fullwidth{draftspline}
+
+## Interpolating splines
+
+\fullwidth{spline}
+
+## Interpolating splines
+
+\fullwidth{spline2}
+
+## Interpolating splines
+
+\begin{block}{}
+A spline is a continuous function $f(x)$ interpolating all
+points ($\kappa_j,y_j$) for $j=1,\dots,K$ and consisting of polynomials between each consecutive pair of `knots' $\kappa_j$ and $\kappa_{j+1}$.
+\end{block}
+
+\pause
+
+* Parameters constrained so that $f(x)$ is continuous.
+* Further constraints imposed to give continuous derivatives.
+* Cubic splines most common, with $f'$, $f''$ continuous.
+
+## Smoothing splines
+
+Let $y=f(x) + \varepsilon$ where $\varepsilon \sim IID(0,\sigma^2)$. Then
+
+Choose $\hat{f}$ to minimize
+\begin{block}{}
+$$\frac{1}{n} \sum_i (y_i - f(x_i))^2+ \lambda\int [f''(x)]^2 dx$$
+\end{block}
+
+ * $\lambda$ is smoothing parameter to be chosen
+ * $\int [f''(x)]^2 dx$ is a measure of roughness.
+ * Solution: $\hat{f}$ is a cubic spline with knots $\kappa_i=x_i$, $i=1,\dots,n$ (ignoring duplicates).
+ * Other penalties lead to higher order splines
+ * Cross-validation can be used to select $\lambda$.
+
+
+## Smoothing splines
+
+
+```{r faithfulsplineplots}
+lambda <- seq(-15,1,l=100)
+smr <- as.data.frame(matrix(NA,nrow=NROW(faithful), ncol=length(lambda)))
+for(i in seq_along(lambda))
+{
+  fname <- paste("figs/faithfulspline",i,".pdf",sep="")
+  pdf(fname, height=5, width=8)
+  smr <- smooth.spline(faithful$eruptions, faithful$waiting, lambda=exp(lambda[i]))
+  smr <- data.frame(x=smr$x,y=smr$y)
+  print(ggplot(faithful) +
+    geom_point(aes(x=eruptions,y=waiting)) +
+    ggtitle(paste("Old Faithful (Smoothing spline, lambda=exp(",round(lambda[i],3),"))", sep="")) +
+    geom_line(data=smr, aes(x=x, y=y), col='blue'))
+  crop::dev.off.crop()
+}
+```
+
+\centerline{\animategraphics[controls,buttonsize=0.3cm,width=12.5cm]
+    {6}{"faithfulspline"}{1}{100}}
+
+
+
+## Smoothing splines
+
+```{r faithfulsplinecv}
+smr <- smooth.spline(faithful$eruptions, faithful$waiting, cv=TRUE)
+smr <- data.frame(x=smr$x,y=smr$y)
+ggplot(faithful) +
+    geom_point(aes(x=eruptions,y=waiting)) +
+    ggtitle("Old Faithful (Smoothing spline, lambda chosen by CV)") +
+    geom_line(data=smr, aes(x=x, y=y), col='blue')
+```
+
+
+
+## Smoothing splines
+\fontsize{9}{14}\sf
+
+```r
+smr <- smooth.spline(faithful$eruptions, faithful$waiting,
+  cv=TRUE)
+smr <- data.frame(x=smr$x,y=smr$y)
+ggplot(faithful) +
+    geom_point(aes(x=eruptions,y=waiting)) +
+    ggtitle("Old Faithful (Smoothing spline, lambda chosen by CV)") +
+    geom_line(data=smr, aes(x=x, y=y), col='blue')
+```
+
+
+## Smoothing splines
+
+```{r exacv}
+smr <- smooth.spline(exa$x,exa$y, cv=TRUE)
+smr <- data.frame(x=smr$x,y=smr$y)
+ggplot(exa) +
+    geom_point(aes(x=x,y=y)) +
+    ggtitle("Example A (Smoothing spline, lambda chosen by CV)") +
+    geom_line(data=smr, aes(x=x, y=y), col='blue') +
+    geom_line(aes(x=x,y=m), col='red')
+```
+
+
+
+## Smoothing splines
+
+```{r exbcv}
+smr <- smooth.spline(exb$x,exb$y, cv=TRUE)
+smr <- data.frame(x=smr$x,y=smr$y)
+ggplot(exb) +
+    geom_point(aes(x=x,y=y)) +
+    ggtitle("Example B (Smoothing spline, lambda chosen by CV)") +
+    geom_line(data=smr, aes(x=x, y=y), col='blue') +
+    geom_line(aes(x=x,y=m), col='red')
+```
+
+
+## Regression splines
+
+ * Fewer knots than smoothing splines
+ * Need to choose the knots rather than a smoothing parameter.
+ * Can be estimated as a linear model once knots are selected.
+
+## General cubic regression splines
+
+* Let $\kappa_1<\kappa_2<\cdots<\kappa_K$ be ``knots'' in interval $(a,b)$.
+* Let $x_1=x$, $x_2 = x^2$, $x_3=x^3$, $x_j =
+(x-\kappa_{j-3})_+^3$ for $j=4,\dots,K+3$.
+
+* Then the regression of $y$ on $x_1,\dots,x_{K+3}$ is piecewise cubic, but smooth at the knots.
+* Choice of knots can be difficult and arbitrary.
+* Automatic knot selection algorithms very slow.
+* Often use equally spaced knots. Then only need to choose $K$.
+
+## B-splines and natural splines
+
+* B-splines provide an equivalent set of basis functions.
+* Natural cubic splines are a variation on B-splines with linear boundary conditions.
+* These are usually more stable
+* Implemented in `splines::ns` function in R
+* Can specify knots explicitly, or `df`.  Then `df-2` knots are selected at quantiles of $x$.
+
+## Natural splines in R
+\fontsize{10}{10}\sf
+
+```{r faithfulbspline, echo=TRUE, fig.height=3.4}
+fit <- lm(waiting ~ ns(eruptions, df=6), faithful)
+ggplot(faithful) +
+    geom_point(aes(x=eruptions,y=waiting)) +
+    ggtitle("Old Faithful (Natural splines, 6 df)") +
+    geom_line(aes(x=eruptions, y=fitted(fit)), col='blue')
+```
+
+## Natural splines in R
+
+```{r exabspline}
+fit <- lm(y ~ ns(x, df=12), exa)
+ggplot(exa) +
+    geom_point(aes(x=x,y=y)) +
+    ggtitle("Example A (Natural splines, 12 df)") +
+    geom_line(aes(x=x, y=fitted(fit)), col='blue') +
+  geom_line(aes(x=x,y=m), col='red')
+```
+
+## Natural splines in R
+
+```{r exbbspline}
+fit <- lm(y ~ ns(x, df=3), exb)
+ggplot(as.data.frame(exb)) +
+    geom_point(aes(x=x,y=y)) +
+    ggtitle("Example B (Natural splines, 3 df)") +
+    geom_line(aes(x=x, y=fitted(fit)), col='blue') +
+  geom_line(aes(x=x,y=m), col='red')
+```
+
+## Natural splines in R
+
+```{r exbb2spline}
+fit <- lm(y ~ ns(x, df=10), exb)
+ggplot(as.data.frame(exb)) +
+    geom_point(aes(x=x,y=y)) +
+    ggtitle("Example B (Natural splines, 10 df)") +
+    geom_line(aes(x=x, y=fitted(fit)), col='blue') +
+  geom_line(aes(x=x,y=m), col='red')
+```
+
+## Splines and geom_smooth()
+\fontsize{12}{12}\sf
+
+```{r geomsmooth, echo=TRUE, fig.height=3.4}
+ggplot(exa) +
+    geom_point(aes(x=x,y=y)) +
+    geom_smooth(aes(x=x,y=y), method='gam',
+      formula = y ~ s(x,k=12))
+```
+
+
+
+## Splines and geom_smooth()
+
+* Because regression splines use local linear models, we can easily find standard errors for the fitted values.
+
+* Connected together, these form a pointwise confidence band.
+
+* Automatically produced using `geom_smooth`
+
+
+# Multivariate predictors
+
+## Multivariate predictors
+
+\begin{block}{}
+$$y_i = f(\bm{x}_i) + \varepsilon_i,\qquad \bm{x}\in\mathbb{R}^d$$
+\end{block}
+
+Most methods extend naturally to higher dimensions.
+
+  - Multivariate kernel methods
+  - Multivariate local quadratic surfaces
+  - Thin-plate splines (2-d version of smoothing splines)
+
+\pause
+
+\begin{alertblock}{Problem}
+The curse of dimensionality!
+\end{alertblock}
+
+## Curse of dimensionality
+
+Most data lie near the boundary
+
+\fontsize{11}{11}\sf
+
+```{r, echo=TRUE, cache=FALSE}
+x <- matrix(runif(1e6,-1,1), ncol=100)
+boundary <- function(z) { any(abs(z) > 0.95) }
+```
+
+\fontsize{11}{0}\sf
+
+```{r, echo=TRUE, cache=FALSE}
+mean(apply(x[,1,drop=FALSE], 1, boundary))
+mean(apply(x[,1:2], 1, boundary))
+mean(apply(x[,1:5], 1, boundary))
+```
+
+\vspace*{10cm}
+
+## Curse of dimensionality
+
+Most data lie near the boundary
+
+\fontsize{11}{11}\sf
+
+```{r, echo=TRUE, cache=FALSE}
+x <- matrix(runif(1e6,-1,1), ncol=100)
+boundary <- function(z) { any(abs(z) > 0.95) }
+```
+
+\fontsize{11}{0}\sf
+
+```{r, echo=TRUE, cache=FALSE}
+mean(apply(x[,1:10], 1, boundary))
+mean(apply(x[,1:50], 1, boundary))
+mean(apply(x[,1:100], 1, boundary))
+```
+
+\vspace*{10cm}
+
+## Curse of dimensionality
+
+Data are sparse
+
+\fontsize{11}{11}\sf
+
+```{r, echo=TRUE}
+x <- matrix(runif(1e6,-1,1), ncol=100)
+nearby <- function(z) { all(abs(z) < 0.5) }
+mean(apply(x[,1,drop=FALSE], 1, nearby))
+mean(apply(x[,1:2], 1, nearby))
+mean(apply(x[,1:5], 1, nearby))
+```
+
+
+
+## Curse of dimensionality
+
+Data are sparse
+
+\fontsize{11}{11}\sf
+
+```{r, echo=TRUE}
+x <- matrix(runif(1e6,-1,1), ncol=100)
+nearby <- function(z) { all(abs(z) < 0.5) }
+mean(apply(x[,1:10], 1, nearby))
+mean(apply(x[,1:50], 1, nearby))
+mean(apply(x[,1:100], 1, nearby))
+```
+
+## Curse of dimensionality
+
+ * Available data in a window is proportional to $n^{-d}$.
+ * Let $h= 0.5$, and suppose we need 100 observations to estimate our model locally.
+
+```{r, fig.height=3.6}
+d <- 1:20
+df <- data.frame(
+  d=d, n=100/(0.5)^d)
+ggplot(df) +
+  geom_point(aes(x=d,y=n)) +
+  scale_y_log10(breaks=10^(0:8))
+```
+
+
+
+## Bivariate smoothing
+\fontsize{11}{11}\sf
+
+```{r, echo=TRUE}
+lomod <- loess(sr ~ pop15 + ddpi, data=savings)
+```
+
+```{r, fig.height=4.2}
+xg <- seq(21,48,len=20)
+yg <- seq(0,17,len=20)
+zg <- expand.grid(pop15=xg,ddpi=yg)
+par(mar=c(0,0,0,0))
+persp(xg, yg, predict(lomod, zg), theta=-30, 
+      ticktype="detailed", col=heat.colors(500),
+      xlab="pop15", ylab="ddpi", zlab="savings rate")
+```
+
+
+
+## Bivariate smoothing
+\fontsize{11}{11}\sf
+
+```{r, echo=TRUE}
+library(mgcv)
+smod <- gam(sr ~ s(pop15, ddpi), data=savings)
+```
+
+```{r, fig.height=4.2}
+par(mar=c(0,0,0,0))
+mgcv::vis.gam(smod, ticktype="detailed",theta=-30)
+```
+
