@@ -39,17 +39,14 @@ set.seed(1)
 ## Examples
 
 ```{r examples}
-p1 <- ggplot(exa) +
-  geom_point(aes(x=x,y=y)) +
-  geom_line(aes(x=x, y=m),col='red') +
+p1 <- ggplot(exa, aes(x=x,y=y)) +
+  geom_point() + geom_line(aes(y=m), col='red', lwd=1) +
   ggtitle("Example A")
-p2 <- ggplot(as.data.frame(exb)) +
-  geom_point(aes(x=x,y=y)) +
-  geom_line(aes(x=x, y=m),col='red') +
+p2 <- ggplot(as.data.frame(exb), aes(x=x,y=y)) +
+  geom_point() + geom_line(aes(y=m), col='red', lwd=1) +
   ggtitle("Example B")
-p3 <- ggplot(faithful) +
-  geom_point(aes(x=eruptions,y=waiting)) +
-  geom_smooth() +
+p3 <- ggplot(faithful, aes(x=eruptions,y=waiting)) +
+  geom_point() + #geom_smooth(col='red', lwd=1, se=FALSE) +
   ggtitle("Old Faithful")
 gridExtra::grid.arrange(p1,p2,p3,nrow=1)
 ```
@@ -201,14 +198,14 @@ Let $y=f(x) + \varepsilon$ where $\varepsilon \sim IID(0,\sigma^2)$. Then
 
 \begin{block}{}
 $$\text{MSE}(h) = \E [f(x) - \hat{f}_h(x)] ^2
- \approx \frac{\sigma^2R(K)}{nh} + \frac{\sigma_K^4 h^4[f''(x)]^2}{4}$$
+ \approx \frac{\sigma^2r_K}{nh} + \frac{v_K^2 h^4[f''(x)]^2}{4}$$
 \end{block}
 
- * $R(K) = \displaystyle\int K^2(x) dx$, \qquad $\sigma_K^2 = \displaystyle\int x^2K(x)dx$
+ * $r_K = \displaystyle\int K^2(x) dx$, \qquad $v_K = \displaystyle\int x^2K(x)dx$
 
  * Consistent estimator if $nh\rightarrow\infty$ and $h\rightarrow0$ as $n\rightarrow\infty$.
 
- * $h_{\text{optimal}} \approx\displaystyle \left(\frac{R(K)}{n[f''(x)]^2\sigma_K^4}\right)^{1/5}$
+ * $h_{\text{optimal}} \approx\displaystyle \left(\frac{r_K}{n[f''(x)]^2v_K^2}\right)^{1/5}$
 
 
 ## Kernel smoothing in R
@@ -268,9 +265,9 @@ $$\hat{f}(x) = \hat{a}_0$$
 ## Local polynomials in R
 
 * One useful implementation is\newline `KernSmooth::locpoly(x, y, degree, bandwidth)`
+* Uses Gaussian kernel.
 * `dpill` can be used to choose the `bandwidth` $h$ if `degree=1`.
-* Otherwise, $h$ could be selected by cross-validation.
-* But most people seem to use trial and error --- finding the largest $h$ that captures what they think they see by eye.
+* Many people seem to use trial and error --- finding the largest $h$ that captures what they think they see by eye.
 
 
 
@@ -368,7 +365,7 @@ ggplot(exa) +
 
 
 
-# Splines
+# Interpolating splines
 
 
 ## Interpolating splines
@@ -395,6 +392,8 @@ points ($\kappa_j,y_j$) for $j=1,\dots,K$ and consisting of polynomials between 
 * Parameters constrained so that $f(x)$ is continuous.
 * Further constraints imposed to give continuous derivatives.
 * Cubic splines most common, with $f'$, $f''$ continuous.
+
+# Smoothing splines
 
 ## Smoothing splines
 
@@ -451,16 +450,18 @@ ggplot(faithful) +
 
 
 ## Smoothing splines
-\fontsize{9}{14}\sf
+\fontsize{11}{14}\sf
 
 ```r
-smr <- smooth.spline(faithful$eruptions, faithful$waiting,
+smr <- smooth.spline(
+  faithful$eruptions,
+  faithful$waiting,
   cv=TRUE)
 smr <- data.frame(x=smr$x,y=smr$y)
 ggplot(faithful) +
-    geom_point(aes(x=eruptions,y=waiting)) +
-    ggtitle("Old Faithful (Smoothing spline, lambda chosen by CV)") +
-    geom_line(data=smr, aes(x=x, y=y), col='blue')
+  geom_point(aes(x=eruptions,y=waiting)) +
+  ggtitle("Old Faithful (Smoothing spline, lambda chosen by CV)") +
+  geom_line(data=smr, aes(x=x, y=y), col='blue')
 ```
 
 
@@ -490,6 +491,7 @@ ggplot(exb) +
     geom_line(aes(x=x,y=m), col='red')
 ```
 
+# Regression splines
 
 ## Regression splines
 
