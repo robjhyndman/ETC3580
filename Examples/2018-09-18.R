@@ -91,7 +91,7 @@ ggplot(faithful) +
   ggtitle("Old Faithful (Natural splines, 6 df)") +
   geom_line(aes(x=eruptions, y=fitted(fit)), col='blue')
 
-fit <- lm(y ~ ns(x, df=12), exa)
+fit <- lm(y ~ ns(x, knots=c(0.5, 0.65,0.75, 0.8,0.9)), exa)
 ggplot(exa) +
   geom_point(aes(x=x,y=y)) +
   ggtitle("Example A (Natural splines, 12 df)") +
