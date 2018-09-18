@@ -27,7 +27,6 @@ ggplot(exb) +
   geom_line(data=fit, aes(x=x,y=y), col='blue') +
   geom_line(aes(x=x,y=m), col='red')
 
-
 # Local linear
 
 fit <- locpoly(faithful$eruptions, faithful$waiting,
@@ -58,7 +57,6 @@ ggplot(exb) +
   geom_point(aes(x=x,y=y)) +
   geom_line(data=fit, aes(x=x,y=y), col='blue') +
   geom_line(aes(x=x,y=m), col='red')
-
 
 # Local quadratic
 

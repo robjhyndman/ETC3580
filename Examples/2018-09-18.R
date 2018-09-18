@@ -27,7 +27,6 @@ ggplot(as.data.frame(exb)) +
   geom_line(aes(x=x, y=fitted(smr)), col='blue') +
   geom_line(aes(x=x,y=m), col='red')
 
-
 ## geom_smooth (uses non-robust loess)
 
 ggplot(faithful) +
@@ -43,7 +42,6 @@ ggplot(exb) +
   geom_point(aes(x=x,y=y)) +
   geom_smooth(aes(x=x,y=y), method='loess')
 
-
 # Smoothing splines
 
 lambda <- 0.001
@@ -54,14 +52,12 @@ ggplot(faithful) +
   ggtitle(paste("Old Faithful (Smoothing spline, lambda=",lambda, sep="")) +
   geom_line(data=smr, aes(x=x, y=y), col='blue')
 
-
 smr <- smooth.spline(faithful$eruptions, faithful$waiting, cv=TRUE)
 smr <- data.frame(x=smr$x,y=smr$y)
 ggplot(faithful) +
   geom_point(aes(x=eruptions,y=waiting)) +
   ggtitle("Old Faithful (Smoothing spline, lambda chosen by CV)") +
   geom_line(data=smr, aes(x=x, y=y), col='blue')
-
 
 smr <- smooth.spline(exa$x,exa$y, cv=TRUE)
 smr <- data.frame(x=smr$x,y=smr$y)
@@ -71,7 +67,6 @@ ggplot(exa) +
   geom_line(data=smr, aes(x=x, y=y), col='blue') +
   geom_line(aes(x=x,y=m), col='red')
 
-
 smr <- smooth.spline(exb$x,exb$y, cv=TRUE)
 smr <- data.frame(x=smr$x,y=smr$y)
 ggplot(exb) +
@@ -79,8 +74,6 @@ ggplot(exb) +
   ggtitle("Example B (Smoothing spline, lambda chosen by CV)") +
   geom_line(data=smr, aes(x=x, y=y), col='blue') +
   geom_line(aes(x=x,y=m), col='red')
-
-
 
 ## Regression splines
 
@@ -98,7 +91,6 @@ ggplot(exa) +
   geom_line(aes(x=x, y=fitted(fit)), col='blue') +
   geom_line(aes(x=x,y=m), col='red')
 
-
 fit <- lm(y ~ ns(x, df=3), exb)
 ggplot(as.data.frame(exb)) +
   geom_point(aes(x=x,y=y)) +
@@ -110,7 +102,6 @@ ggplot(exa) +
   geom_point(aes(x=x,y=y)) +
   geom_smooth(aes(x=x,y=y), method='gam',
               formula = y ~ s(x,k=12))
-
 
 lomod <- loess(sr ~ pop15 + ddpi, data=savings)
 
