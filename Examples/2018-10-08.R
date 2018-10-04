@@ -72,6 +72,7 @@ predict(ammgcv, data.frame(temp=120,ibh=2000,ibt=100), se=TRUE)
 amred <- gam(O3 ~ s(vh) + s(wind) + s(humidity) + s(temp) +
                s(dpg) + s(vis) + s(doy) + s(ibh) + s(ibt),
              data=ozone, select=TRUE)
+# select=TRUE means that terms may be dropped
 
 summary(amred)
 visreg(amred, "vh", gg=TRUE)
@@ -104,39 +105,98 @@ visreg(gammgcv, "ibh", gg=TRUE)
 visreg(gammgcv, "ibt", gg=TRUE)
 
 
-## Assignment 1 revisited with a GAM
-library(tidyverse)
-library(ggfortify)
-library(forcats)
-load("../Assignments/gss.RData")
+## Assignment 2 revisited with a GAM
+load("gss.RData")
 
-# Example code
-guns <- gss %>%
-  filter(year==2004) %>%
-  filter(hgunlaw %in% c("AGREE", "DISAGREE")) %>%
+gss %>%
+  filter(year==2004,
+         hgunlaw %in% c("AGREE", "DISAGREE")
+  ) %>%
   mutate(
-    guncontrol = (hgunlaw=="DISAGREE"),
-    age = as.numeric(age),
+    guncontrol=(hgunlaw=="AGREE"),
+    age = as.numeric(substr(age, 1, 2)),
     educ = as.numeric(educ),
+    race = droplevels(race),
+    owngun = fct_collapse(owngun,
+               OTHER = c("REFUSED", "DK", "NA", "IAP")),
+    owngun = recode_factor(owngun,
+                           YES="YES", NO="NO",
+                           IAP=NA_character_, REFUSED=NA_character_, DK=NA_character_, `NA`=NA_character_),
+    attend = recode_factor(attend,
+                           `MORE THN ONCE WK`= "> Weekly",
+                           `EVERY WEEK` = "Weekly",
+                           `NRLY EVERY WEEK` = "> Monthly",
+                           `2-3X A MONTH` = "> Monthly",
+                           `ONCE A MONTH` = "Monthly",
+                           `SEVRL TIMES A YR` = "> Yearly",
+                           `ONCE A YEAR` = "Yearly",
+                           `LT ONCE A YEAR` = "< Yearly",
+                           `NEVER` = "Never",
+                           `DK,NA` = NA_character_),
+    relig = fct_collapse(relig,
+               OTHER = c("JEWISH", "OTHER", "BUDDHISM", "HINDUISM", "OTHER EASTERN",
+                         "MOSLEM/ISLAM", "ORTHODOX-CHRISTIAN", "NATIVE AMERICAN",
+                         "INTER-NONDENOMINATIONAL", "DK", "NA", "IAP")),
+    relig = recode_factor(relig,
+                          CHRISTIAN = "Christian",
+                          PROTESTANT = "Christian",
+                          CATHOLIC = "Catholic",
+                          `ORTHODOX-CHRISTIAN` = "Christian",
+                          `INTER-NONDENOMINATIONAL` = "Christian",
+                          JEWISH = "Jewish",
+                          `MOSLEM/ISLAM` = "Muslim",
+                          BUDDHISM = "Eastern",
+                          HINDUISM = "Eastern",
+                          `OTHER EASTERN` = "Eastern",
+                          OTHER = "Other",
+                          NONE = "None",
+                          `NA` = NA_character_
+    ),
+    relig = droplevels(relig),
     partyid = fct_collapse(partyid,
                            OTHER = c("NA", "DK", "OTHER PARTY")),
-    owngun = fct_collapse(owngun,
-                          OTHER = c("REFUSED", "DK", "NA", "IAP")),
-    relig = fct_collapse(relig,
-                         OTHER = c("JEWISH", "OTHER", "BUDDHISM", "HINDUISM", "OTHER EASTERN",
-                                   "MOSLEM/ISLAM", "ORTHODOX-CHRISTIAN", "NATIVE AMERICAN",
-                                   "INTER-NONDENOMINATIONAL", "DK", "NA", "IAP"))) %>%
-  select(guncontrol, age, sex, race, educ, relig, partyid, born, owngun)
+    partyid = recode_factor(partyid,
+                            `STRONG DEMOCRAT` = "S Democrat",
+                            `NOT STR DEMOCRAT` = "Democrat",
+                            `IND,NEAR DEM` = "I Democrat",
+                            `INDEPENDENT` = "Independent",
+                            `IND,NEAR REP` = "I Republican",
+                            `NOT STR REPUBLICAN` = "Republican",
+                            `STRONG REPUBLICAN` = "S Republican",
+                            `OTHER PARTY`  = "Other",
+                            `DK` = NA_character_,
+                            `NA` = NA_character_)
+  ) %>%  
+  select(guncontrol, age, sex, race, educ, relig, partyid, born, owngun, attend) ->
+  guns
 
-fit <- gam(guncontrol ~ sex*race + s(age) + s(educ) + relig + born +
+# Linear main effects model with sex*race interaction
+fit1 <- gam(guncontrol ~ sex*race + age + educ + relig + born +
              owngun + partyid,
            family = binomial, data = guns, select=TRUE)
+summary(fit1)
 
-summary(fit)
-visreg(fit, "age", gg=TRUE)
-visreg(fit, "educ", gg=TRUE)
-visreg(fit, "relig", gg=TRUE)
-visreg(fit, "born", gg=TRUE)
-visreg(fit, "owngun", gg=TRUE)
-visreg(fit, "partyid", gg=TRUE)
-visreg2d(fit, x="sex", y="race")
+# Additive main effects model with sex*race interaction
+fit2 <- gam(guncontrol ~ sex*race + s(age) + s(educ) + relig + born +
+             owngun + partyid,
+           family = binomial, data = guns, select=TRUE)
+summary(fit2)
+visreg(fit2, "age", gg=TRUE)
+visreg(fit2, "educ", gg=TRUE)
+
+# Can make education linear
+fit3 <- gam(guncontrol ~ sex*race + s(age) + educ + relig + born +
+              owngun + partyid,
+            family = binomial, data = guns, select=TRUE)
+summary(fit3)
+
+anova(fit2, fit3, test="F")
+anova(fit1, fit3, test="F")
+
+visreg(fit3, "age", gg=TRUE)
+visreg(fit3, "educ", gg=TRUE)
+visreg(fit3, "relig", gg=TRUE)
+visreg(fit3, "born", gg=TRUE)
+visreg(fit3, "owngun", gg=TRUE)
+visreg(fit3, "partyid", gg=TRUE)
+visreg2d(fit3, x="sex", y="race")
