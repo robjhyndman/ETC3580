@@ -2,6 +2,7 @@ library(faraway)
 library(mgcv)
 library(visreg)
 library(tidyverse)
+library(broom)
 
 # ADDITIVE MODELS
 
@@ -46,13 +47,14 @@ summary(amint)
 anova(ammgcv, amint, test="F")
 # Interaction not significant
 
-visreg2d(amint, x="temp",y="ibh")
+visreg2d(ammgcv, x="temp",y="ibh")
 visreg2d(amint, x="temp",y="ibh", plot.type='persp')
-visreg2d(amint, x="temp",y="ibh", plot.type='rgl')
+visreg2d(ammgcv, x="temp",y="ibh", plot.type='rgl')
 
 # Residual diagnostics
-ggplot() +
-  geom_point(aes(x=fitted(ammgcv), y=residuals(ammgcv)))
+augment(ammgcv) %>%
+  ggplot() +
+    geom_point(aes(x=.fitted, y=.resid))
 # Some heteroskedasticity
 
 augment(ammgcv) %>%
@@ -85,6 +87,32 @@ visreg(amred, "doy", gg=TRUE)
 visreg(amred, "ibh", gg=TRUE)
 visreg(amred, "ibt", gg=TRUE)
 
+augment(amred) %>%
+  ggplot() +
+  geom_point(aes(x=.fitted, y=.resid))
+
+## Log with variable selection
+ozone2 <- mutate(ozone,
+                 logO3 = log(O3))
+amred2 <- gam(logO3 ~ s(vh) + s(wind) + s(humidity) + s(temp) +
+               s(dpg) + s(vis) + s(doy) + s(ibh) + s(ibt),
+             data=ozone2, select=TRUE)
+# select=TRUE means that terms may be dropped
+
+summary(amred2)
+augment(amred2) %>%
+  ggplot() +
+  geom_point(aes(x=.fitted, y=.resid))
+
+visreg(amred2, "vh", gg=TRUE)
+visreg(amred2, "wind", gg=TRUE)
+visreg(amred2, "humidity", gg=TRUE)
+visreg(amred2, "temp", gg=TRUE)
+visreg(amred2, "dpg", gg=TRUE)
+visreg(amred2, "vis", gg=TRUE)
+visreg(amred2, "doy", gg=TRUE)
+visreg(amred2, "ibh", gg=TRUE)
+visreg(amred2, "ibt", gg=TRUE)
 
 
 ## GENERALIZED ADDITIVE MODEL
