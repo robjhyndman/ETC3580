@@ -136,5 +136,25 @@ Hastie and Tibshirani describe method for fitting GAMs using a
 method known as ``local scoring'' which is an extension of the
 Fisher scoring procedure.
 
+## Next week
+
+\LARGE
+
+* Revision lecture on Monday
+
+* No lecture on Tuesday
 
 
+## Lynxx Consulting Seminar
+
+### Real world projects: Business analytics with imperfect data
+
+**Presenter:**  Matt McInnes,
+
+Managing Director - Asia Pacific,  Lynxx Consulting
+
+\vspace*{.6cm}
+
+Thursday, 18 October 2018, 5:00pm to 6:30pm
+
+**Location:**  Learning and Teaching Building, Room G58
