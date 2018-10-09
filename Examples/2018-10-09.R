@@ -9,7 +9,7 @@ library(broom)
 # Dispersed Poisson model:
 gammgcv <- gam(O3 ~ s(vh) + s(wind) + s(humidity) + s(temp) +
                  s(dpg) + s(vis) + s(doy) + s(ibh) + s(ibt),
-               family=poisson,  scale=-1, data=ozone, select=TRUE)
+               family=poisson,  data=ozone, select=TRUE)
 summary(gammgcv)
 visreg(gammgcv, "vh", gg=TRUE)
 visreg(gammgcv, "wind", gg=TRUE)
@@ -20,6 +20,11 @@ visreg(gammgcv, "vis", gg=TRUE)
 visreg(gammgcv, "doy", gg=TRUE)
 visreg(gammgcv, "ibh", gg=TRUE)
 visreg(gammgcv, "ibt", gg=TRUE)
+
+augment(gammgcv) %>%
+  ggplot(aes(x=.fitted, y=.resid)) +
+    geom_point()
+
 
 
 ## Assignment 2 revisited with a GAM
@@ -107,8 +112,8 @@ fit3 <- gam(guncontrol ~ sex*race + s(age) + educ + relig + born +
             family = binomial, data = guns, select=TRUE)
 summary(fit3)
 
-anova(fit2, fit3, test="F")
-anova(fit1, fit3, test="F")
+anova(fit2, fit3, test="Chisq")
+anova(fit1, fit3, test="Chisq")
 
 visreg(fit3, "age", gg=TRUE)
 visreg(fit3, "educ", gg=TRUE)
@@ -117,3 +122,12 @@ visreg(fit3, "born", gg=TRUE)
 visreg(fit3, "owngun", gg=TRUE)
 visreg(fit3, "partyid", gg=TRUE)
 visreg2d(fit3, x="sex", y="race")
+
+# Can make age and education interact
+fit4 <- gam(guncontrol ~ sex*race + te(age, educ) + relig + born +
+              owngun + partyid,
+            family = binomial, data = guns, select=TRUE)
+summary(fit4)
+anova(fit4, fit3, test="Chisq")
+visreg2d(fit4, "age", "educ", scale='response')
+
