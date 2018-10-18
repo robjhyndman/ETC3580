@@ -1,7 +1,7 @@
 ---
 title: "ETC3580: Advanced Statistical Modelling"
 author: "Week 12: Review"
-output: binb::monash
+output: MonashEBSTemplates::slides
 ---
 
 ## Key Concepts
