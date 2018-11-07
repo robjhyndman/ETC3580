@@ -208,7 +208,7 @@ $$\E(\bm{\gamma} |\bm{y}) = \bm{D}\bm{Z}'\bm{V}^{-1}(\bm{y}-\bm{X}\bm{\beta})$$
 2. Compute test statistic
 3. Simulate pseudo-data from the null model
 4. Fit both models to the pseudo-data and compute the test statistic.
-5. Repeat steps 2--3 a large number of times.
+5. Repeat steps 3--4 a large number of times.
 6. Find proportion of times simulated test statistics are greater than actual test statistic.
 
 ## Model selection
